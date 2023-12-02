@@ -12,10 +12,24 @@ struct Day02: AdventDay {
     }
 
     func part1() -> Any {
-        let validGames = entities.map(Game.init).filter(\.isValid)
-        return validGames.reduce(into: 0) { partialResult, game in
-            partialResult += game.number
-        }
+        entities
+            .map(Game.init)
+            .filter(\.isValid)
+            .reduce(into: 0) { partialResult, game in
+                partialResult += game.number
+            }
+    }
+
+    func part2() -> Any {
+        entities
+            .map(Game.init)
+            .reduce(into: 0) { partialResult, game in
+                let blue = game.sets.map(\.blue).max() ?? 0
+                let green = game.sets.map(\.green).max() ?? 0
+                let red = game.sets.map(\.red).max() ?? 0
+
+                partialResult += blue * green * red
+            }
     }
 }
 
