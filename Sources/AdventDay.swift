@@ -23,15 +23,14 @@ extension AdventDay {
     // Find the challenge day from the type name.
     static var day: Int {
         let typeName = String(reflecting: Self.self)
-        guard let i = typeName.lastIndex(where: { !$0.isNumber }),
-              let day = Int(typeName[i...].dropFirst())
-        else {
+        guard let i = typeName.lastIndex(where: { !$0.isNumber }), let day = Int(typeName[i...].dropFirst()) else {
             fatalError(
-            """
-            Day number not found in type name: \
-            implement the static `day` property \
-            or use the day number as your type's suffix (like `Day3`).")
-            """)
+                """
+                Day number not found in type name: \
+                implement the static `day` property \
+                or use the day number as your type's suffix (like `Day3`).")
+                """
+            )
         }
         return day
     }
@@ -59,13 +58,11 @@ extension AdventDay {
             withExtension: "txt",
             subdirectory: "Data")
 
-        guard let dataURL,
-              let data = try? String(contentsOf: dataURL)
-        else {
+        guard let dataURL, let data = try? String(contentsOf: dataURL) else {
             fatalError("Couldn't find file '\(dataFilename).txt' in the 'Data' directory.")
         }
 
-        // On Windows, line separators may be CRLF. Converting to LF so that \n 
+        // On Windows, line separators may be CRLF. Converting to LF so that \n
         // works for string parsing.
         return data.replacingOccurrences(of: "\r", with: "")
     }
