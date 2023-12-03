@@ -27,6 +27,10 @@ final class Day03Tests: XCTestCase {
     }
 
     func testPart2() throws {
-        XCTFail("Not implemented")
+        // when
+        let result = Day03(data: testData).part2()
+
+        // then
+        XCTAssertEqual(String(describing: result), "467835")
     }
 }

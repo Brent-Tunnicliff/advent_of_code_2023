@@ -12,9 +12,15 @@ struct Day03: AdventDay {
     }
 
     func part1() -> Any {
-        let validNumbers = getValidNumbers(entities)
-        return validNumbers.reduce(into: 0) { partialResult, value in
-            partialResult += value
+        let results = getValidNumbers(entities)
+        return results.reduce(into: 0) { partialResult, result in
+            partialResult += result.value
+        }
+    }
+
+    func part2() -> Any {
+        return getGearRatios(entities).reduce(into: 0) { partialResult, result in
+            partialResult += result
         }
     }
 }
@@ -23,14 +29,61 @@ private extension Day03 {
     typealias NumberResult = Result<[Int], Int>
     typealias SymbolResult = Result<Int, Character>
 
-    struct Result<Index, Value> {
+    struct Result<Index: Equatable, Value: Equatable>: Equatable {
         let columnIndex: Index
         let rowIndex: Int
         let value: Value
     }
 
-    func getValidNumbers(_ lines: [String]) -> [Int] {
-        let (numbers, symbols) = lines
+    func getValidNumbers(_ lines: [String]) -> [NumberResult] {
+        let (numbers, symbols) = map(lines: lines)
+        return numbers.reduce(into: [NumberResult]()) { partialResult, number in
+            (number.rowIndex-1...number.rowIndex+1).forEach { (rowIndex: Int) in
+                (number.columnIndex.min()!-1...number.columnIndex.max()!+1).forEach { (columnIndex: Int) in
+                    guard symbols.contains(columnIndex: columnIndex, rowIndex: rowIndex) else {
+                        return
+                    }
+
+                    partialResult.append(number)
+                }
+            }
+        }
+    }
+
+    func getGearRatios(_ lines: [String]) -> [Int] {
+        let (numbers, symbols) = map(lines: entities)
+        return symbols
+            .filter { $0.value == "*" }
+            .reduce(into: [Int]()) { partialResult, result in
+                var matchingNumbers: [NumberResult] = []
+
+                (result.rowIndex-1...result.rowIndex+1).forEach { (rowIndex: Int) in
+                    (result.columnIndex-1...result.columnIndex+1).forEach { (columnIndex: Int) in
+                        guard 
+                            let number = numbers.matching(columnIndex: columnIndex, rowIndex: rowIndex),
+                            !matchingNumbers.contains(where: { $0 == number })
+                        else {
+                            return
+                        }
+
+                        matchingNumbers.append(number)
+                    }
+                }
+
+                guard matchingNumbers.count == 2 else {
+                    return
+                }
+
+                let ration = matchingNumbers.reduce(into: 0) { partialResult, result in
+                    partialResult = [1, partialResult].max()! * result.value
+                }
+
+                partialResult.append(ration)
+            }
+    }
+
+    func map(lines: [String]) -> ([NumberResult], [SymbolResult]) {
+        lines
             .enumerated()
             .reduce(into: ([NumberResult](), [SymbolResult]())) { partialResult, line in
                 let rowIndex = line.offset
@@ -75,18 +128,6 @@ private extension Day03 {
                     ))
                 }
             }
-
-        return numbers.reduce(into: [Int]()) { partialResult, number in
-            (number.rowIndex-1...number.rowIndex+1).forEach { (rowIndex: Int) in
-                (number.columnIndex.min()!-1...number.columnIndex.max()!+1).forEach { (columnIndex: Int) in
-                    guard symbols.contains(columnIndex: columnIndex, rowIndex: rowIndex) else {
-                        return
-                    }
-
-                    partialResult.append(number.value)
-                }
-            }
-        }
     }
 }
 
