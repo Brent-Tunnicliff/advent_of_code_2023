@@ -6,6 +6,13 @@ Daily programming puzzles at [Advent of Code](<https://adventofcode.com/>), by
 [Eric Wastl](<http://was.tl/>). This is a small example starter project for
 building Advent of Code solutions.
 
+## Input data legal info
+
+The contents of `Sources/Data/*` contains sensitive information that the creator of
+[Advent of Code](<https://adventofcode.com/>) does not want shared in a public repo [see post here](https://www.reddit.com/r/adventofcode/wiki/faqs/copyright/inputs/).
+So has been added to `.gitignore` and only left the initial example in place.
+To run this project you need to manually download each day's input from the [2023 events page](https://adventofcode.com/2023).
+
 ## Usage
 
 Swift comes with Xcode, or you can [install it](https://www.swift.org/install/)
