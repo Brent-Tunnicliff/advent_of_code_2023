@@ -57,7 +57,7 @@ struct Day01: AdventDay {
                 return
             }
 
-            ranges.forEach { range in
+            for range in ranges {
                 let index = string.distance(from: string.startIndex, to: range.lowerBound)
                 partialResult[index] = item.value
             }
@@ -65,12 +65,10 @@ struct Day01: AdventDay {
 
         // Now applying all digits to the same index:value map.
         // This should not overwrite any values as namedDigit keys only contain letters, not digits.
-        string.enumerated().forEach {
-            guard let wholeNumberValue = $0.element.wholeNumberValue else {
-                return
+        for (offset, element) in string.enumerated() {
+            if let wholeNumberValue = element.wholeNumberValue {
+                values[offset] = wholeNumberValue
             }
-
-            values[$0.offset] = wholeNumberValue
         }
 
         guard let key = getKey(Array(values.keys)) else {

@@ -38,10 +38,10 @@ private extension Day03 {
     func getValidNumbers(_ lines: [String]) -> [NumberResult] {
         let (numbers, symbols) = map(lines: lines)
         return numbers.reduce(into: [NumberResult]()) { partialResult, number in
-            (number.rowIndex-1...number.rowIndex+1).forEach { (rowIndex: Int) in
-                (number.columnIndex.min()!-1...number.columnIndex.max()!+1).forEach { (columnIndex: Int) in
+            for rowIndex in (number.rowIndex - 1...number.rowIndex + 1) {
+                for columnIndex in (number.columnIndex.min()! - 1...number.columnIndex.max()! + 1) {
                     guard symbols.contains(columnIndex: columnIndex, rowIndex: rowIndex) else {
-                        return
+                        continue
                     }
 
                     partialResult.append(number)
@@ -51,19 +51,18 @@ private extension Day03 {
     }
 
     func getGearRatios(_ lines: [String]) -> [Int] {
-        let (numbers, symbols) = map(lines: entities)
-        return symbols
-            .filter { $0.value == "*" }
+        let (numbers, symbols) = map(lines: lines)
+        return symbols.filter { $0.value == "*" }
             .reduce(into: [Int]()) { partialResult, result in
                 var matchingNumbers: [NumberResult] = []
 
-                (result.rowIndex-1...result.rowIndex+1).forEach { (rowIndex: Int) in
-                    (result.columnIndex-1...result.columnIndex+1).forEach { (columnIndex: Int) in
-                        guard 
+                for rowIndex in (result.rowIndex - 1...result.rowIndex + 1) {
+                    for columnIndex in (result.columnIndex - 1...result.columnIndex + 1) {
+                        guard
                             let number = numbers.matching(columnIndex: columnIndex, rowIndex: rowIndex),
                             !matchingNumbers.contains(where: { $0 == number })
                         else {
-                            return
+                            continue
                         }
 
                         matchingNumbers.append(number)
@@ -88,44 +87,50 @@ private extension Day03 {
             .reduce(into: ([NumberResult](), [SymbolResult]())) { partialResult, line in
                 let rowIndex = line.offset
 
-                line.element.enumerated().forEach { character in
+                for character in line.element.enumerated() {
                     let columnIndex = character.offset
 
                     guard character.element != "." else {
-                        return
+                        continue
                     }
 
                     guard let number = character.element.wholeNumberValue else {
-                        partialResult.1.append(.init(
-                            columnIndex: columnIndex,
-                            rowIndex: rowIndex,
-                            value: character.element
-                        ))
-                        return
+                        partialResult.1.append(
+                            .init(
+                                columnIndex: columnIndex,
+                                rowIndex: rowIndex,
+                                value: character.element
+                            )
+                        )
+                        continue
                     }
 
                     guard
                         let lastResult = partialResult.0.last,
                         lastResult.rowIndex == rowIndex,
-                        lastResult.columnIndex.contains(columnIndex-1)
+                        lastResult.columnIndex.contains(columnIndex - 1)
                     else {
-                        partialResult.0.append(.init(
-                            columnIndex: [columnIndex],
-                            rowIndex: rowIndex,
-                            value: number
-                        ))
-                        return
+                        partialResult.0.append(
+                            .init(
+                                columnIndex: [columnIndex],
+                                rowIndex: rowIndex,
+                                value: number
+                            )
+                        )
+                        continue
                     }
 
                     let last = partialResult.0.popLast()!
                     let newColumnIndex = last.columnIndex + [columnIndex]
                     let newValue = Int("\(last.value)\(number)")!
 
-                    partialResult.0.append(.init(
-                        columnIndex: newColumnIndex,
-                        rowIndex: rowIndex,
-                        value: newValue
-                    ))
+                    partialResult.0.append(
+                        .init(
+                            columnIndex: newColumnIndex,
+                            rowIndex: rowIndex,
+                            value: newValue
+                        )
+                    )
                 }
             }
     }

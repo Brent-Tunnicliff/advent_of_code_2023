@@ -89,9 +89,7 @@ extension Game {
             self.green = green
             self.red = red
 
-            self.isValid = blue <= Max.blue
-                && green <= Max.green
-                && red <= Max.red
+            self.isValid = blue <= Max.blue && green <= Max.green && red <= Max.red
         }
     }
 }

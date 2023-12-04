@@ -9,7 +9,7 @@ let dependencies: [Target.Dependency] = [
 
 let package = Package(
     name: "AdventOfCode",
-    platforms: [.macOS(.v13)],
+    platforms: [.macOS(.v14)],
     dependencies: [
         .package(
             url: "https://github.com/apple/swift-algorithms.git",
@@ -22,16 +22,27 @@ let package = Package(
             .upToNextMajor(from: "1.2.0")),
         .package(
             url: "https://github.com/apple/swift-format.git",
-            .upToNextMajor(from: "509.0.0"))
+            .upToNextMajor(from: "509.0.0")),
+        .package(
+            url: "https://github.com/Brent-Tunnicliff/swift-format-plugin", 
+            .upToNextMajor(from: "1.0.0")
+        )
     ],
     targets: [
         .executableTarget(
             name: "AdventOfCode",
             dependencies: dependencies,
-            resources: [.copy("Data")]),
+            resources: [.copy("Data")],
+            plugins: [
+                .plugin(name: "lint", package: "swift-format-plugin") // <- Add to target
+            ]
+        ),
         .testTarget(
             name: "AdventOfCodeTests",
-            dependencies: ["AdventOfCode"] + dependencies
+            dependencies: ["AdventOfCode"] + dependencies,
+            plugins: [
+                .plugin(name: "lint", package: "swift-format-plugin") // <- Add to target
+            ]
         )
     ]
 )
