@@ -7,7 +7,7 @@ DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
 lcov.info
-Package.resolved
+# Package.resolved
 
 # Creator has asked not to include the input in the solution code if the repo is public.
 # https://www.reddit.com/r/adventofcode/wiki/faqs/copyright/inputs/

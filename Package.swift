@@ -9,7 +9,7 @@ let dependencies: [Target.Dependency] = [
 
 let package = Package(
     name: "AdventOfCode",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v13)],
     dependencies: [
         .package(
             url: "https://github.com/apple/swift-algorithms.git",
@@ -34,14 +34,14 @@ let package = Package(
             dependencies: dependencies,
             resources: [.copy("Data")],
             plugins: [
-                .plugin(name: "lint", package: "swift-format-plugin") // <- Add to target
+                .plugin(name: "lint", package: "swift-format-plugin")
             ]
         ),
         .testTarget(
             name: "AdventOfCodeTests",
             dependencies: ["AdventOfCode"] + dependencies,
             plugins: [
-                .plugin(name: "lint", package: "swift-format-plugin") // <- Add to target
+                .plugin(name: "lint", package: "swift-format-plugin")
             ]
         )
     ]
