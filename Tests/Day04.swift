@@ -27,6 +27,6 @@ final class Day04Tests: XCTestCase {
         let result = Day04(data: testData).part2()
 
         // then
-        XCTAssertEqual(String(describing: result), "NOT_IMPLEMENTED")
+        XCTAssertEqual(String(describing: result), "30")
     }
 }
