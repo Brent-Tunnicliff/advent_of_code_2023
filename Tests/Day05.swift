@@ -49,11 +49,11 @@ final class Day05Tests: XCTestCase {
         XCTAssertEqual(String(describing: result), "35")
     }
 
-    func testPart2() throws {
+    func testPart2() async throws {
         // when
-        let result = Day05(data: testData).part2()
+        let result = await Day05(data: testData).part2()
 
         // then
-        XCTAssertEqual(String(describing: result), "PLACEHOLDER")
+        XCTAssertEqual(String(describing: result), "46")
     }
 }

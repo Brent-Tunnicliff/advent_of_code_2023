@@ -12,8 +12,18 @@ struct Day05: AdventDay {
     }
 
     func part1() async -> Any {
-        async let seedValues = await mapSeedValues(from: entities[Section.seeds.rawValue])
-        async let sections = await getSections()
+        async let seedValues = mapSeedValues(from: entities[Section.seeds.rawValue])
+        async let sections = getSections()
+        let seeds = await mapSeeds(seedValues, sections: sections)
+
+        return seeds.min { left, right in
+            left.location < right.location
+        }!.location
+    }
+
+    func part2() async -> Any {
+        async let seedValues = mapSeedRangeValues(from: entities[Section.seeds.rawValue])
+        async let sections = getSections()
         let seeds = await mapSeeds(seedValues, sections: sections)
 
         return seeds.min { left, right in
@@ -23,6 +33,36 @@ struct Day05: AdventDay {
 
     private func mapSeedValues(from input: String) async -> [Int] {
         mapLine(input.trimmingPrefix(Section.seeds.prefix))
+    }
+
+    private func mapSeedRangeValues(from input: String) async -> [Int] {
+        log("mapSeedRangeValues start")
+
+        var values: [Int] = []
+        // Process these concurrently too.
+        await withTaskGroup(of: [Int].self) { group in
+            group.addTask {
+                mapLine(input.trimmingPrefix(Section.seeds.prefix))
+                    .chunks(ofCount: 2)
+                    .reduce(into: [Int](), { partialResult, chunk in
+                        log("mapSeedRangeValues chunk start \(chunk)")
+                        // For some reason chunk[0] and chunk[1] are out of bounds.
+                        // Since it is an array of 2 then just `first` and `last` is fine.
+                        let start = chunk.first!
+                        let end = start + chunk.last!
+                        let values = (start...end).map { $0 }
+                        log("mapSeedRangeValues chunk finished \(chunk)")
+                        partialResult.append(contentsOf: values)
+                    })
+            }
+
+            for await chunkValue in group {
+                values.append(contentsOf: chunkValue)
+            }
+        }
+
+        log("mapSeedRangeValues finished")
+        return values
     }
 
     private func getSections() async -> [Section: RangeDictionary] {
