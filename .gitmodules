@@ -1,0 +1,3 @@
+[submodule "Sources/Data"]
+	path = Sources/Data
+	url = git@github.com:Brent-Tunnicliff/advent_of_code_2023_input.git
