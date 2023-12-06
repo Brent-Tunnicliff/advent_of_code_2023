@@ -12,11 +12,19 @@ let allChallenges: [any AdventDay] = [
 
 @main
 struct AdventOfCode: AsyncParsableCommand {
+    private static let benchmark = {
+        #if DEBUG
+            false
+        #else
+            true
+        #endif
+    }()
+
     @Argument(help: "The day of the challenge. For December 1st, use '1'.")
     var day: Int?
 
     @Flag(help: "Benchmark the time taken by the solution")
-    var benchmark: Bool = false
+    var benchmark: Bool = Self.benchmark
 
     /// The selected day, or the latest day if no selection is provided.
     var selectedChallenge: any AdventDay {
