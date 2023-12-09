@@ -299,7 +299,7 @@ extension Day05 {
             getOverlappingRange(of: range, overlapping: $0)
         }
 
-        return getPadding(overlappingKeys, from: range.lowerBound, to: range.upperBound)
+        let paddedValues: [Node] = getPadding(overlappingKeys, from: range.lowerBound, to: range.upperBound)
             .compactMap {
                 let value = $0.value
                 let children = createNodeChildren(
@@ -314,6 +314,22 @@ extension Day05 {
 
                 return .init(children: children, value: value, section: currentSection)
             }
+
+        let expectedRangeCountOfChildren = range.upperBound - range.lowerBound
+        let combinedRangeCountOfChildren = paddedValues.reduce(into: 0) { partialResult, node in
+            partialResult += node.value.upperBound - node.value.lowerBound
+        }
+
+        precondition(
+            combinedRangeCountOfChildren == expectedRangeCountOfChildren,
+            """
+            Unexpected number of children for range \(range), \
+            got \(combinedRangeCountOfChildren), \
+            expected \(expectedRangeCountOfChildren)
+            """
+        )
+
+        return paddedValues
     }
 
     private func getOverlappingRange(
@@ -345,7 +361,8 @@ extension Day05 {
             return [(padding, padding)]
         }
 
-        return range.reduce(into: [(key: Range<Int>, value: Range<Int>)]()) { partialResult, item in
+        let sortedRange = range.sorted(by: { $0.key.lowerBound < $1.key.lowerBound })
+        let paddedValues = sortedRange.reduce(into: [(key: Range<Int>, value: Range<Int>)]()) { partialResult, item in
             let previousUpperBound = partialResult.last?.key.upperBound ?? start
 
             if previousUpperBound < item.key.lowerBound {
@@ -355,7 +372,7 @@ extension Day05 {
 
             partialResult.append(item)
 
-            if item == range.last!, item.key.upperBound < end {
+            if item == sortedRange.last!, item.key.upperBound < end {
                 let padding = (item.key.upperBound..<end)
                 partialResult.append((padding, padding))
             }
@@ -365,6 +382,22 @@ extension Day05 {
                 "Unexpected range \(partialResult.last!.key.upperBound) < \(end)"
             )
         }
+
+        let expectedRangeCountOfChildren = end - start
+        let combinedRangeCountOfChildren = paddedValues.reduce(into: 0) { partialResult, node in
+            partialResult += node.value.upperBound - node.value.lowerBound
+        }
+
+        precondition(
+            combinedRangeCountOfChildren == expectedRangeCountOfChildren,
+            """
+            Unexpected number of children for range \(start..<end), \
+            got \(combinedRangeCountOfChildren), \
+            expected \(expectedRangeCountOfChildren)
+            """
+        )
+
+        return paddedValues
     }
 }
 
