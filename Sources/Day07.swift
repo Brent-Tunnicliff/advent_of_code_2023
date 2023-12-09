@@ -6,16 +6,20 @@ struct Day07: AdventDay {
     var data: String
 
     func part1() -> Any {
-        getHands().sorted().reversed().enumerated().reduce(into: 0) { partialResult, hand in
+        getTotalWinnings(includeJoker: false)
+    }
+
+    func part2() -> Any {
+        getTotalWinnings(includeJoker: true)
+    }
+
+    private func getTotalWinnings(includeJoker: Bool) -> Int {
+        getHands(includeJoker: includeJoker).sorted().reversed().enumerated().reduce(into: 0) { partialResult, hand in
             partialResult += hand.element.bid * (hand.offset + 1)
         }
     }
 
-    func part2() -> Any {
-        return "Not implemented"
-    }
-
-    private func getHands() -> [Hand] {
+    private func getHands(includeJoker: Bool) -> [Hand] {
         data.split(separator: "\n")
             .map {
                 $0.trimmingCharacters(in: .whitespaces).split(separator: " ")
@@ -25,7 +29,7 @@ struct Day07: AdventDay {
 
                 let bid = Int(line[1])!
                 let cards = line[0].map {
-                    Card(rawValue: $0.description)
+                    Card(rawValue: $0.description, includeJoker: includeJoker)
                 }
 
                 return Hand(bid: bid, cards: cards)
@@ -48,14 +52,15 @@ private enum Card: Int, Comparable {
     case four
     case three
     case two
+    case joker
 
-    init(rawValue: String) {
+    init(rawValue: String, includeJoker: Bool) {
         self =
             switch rawValue {
             case "A": .ace
             case "K": .king
             case "Q": .queen
-            case "J": .jack
+            case "J": includeJoker ? .joker : .jack
             case "T": .ten
             case "9": .nine
             case "8": .eight
@@ -101,13 +106,21 @@ private struct Hand: Comparable {
         self.bid = bid
         self.cards = cards
 
-        let groupedCards = cards.reduce(into: [Card: Int]()) { partialResult, card in
-            let existingCount = partialResult[card] ?? 0
-            partialResult[card] = existingCount + 1
+        let groupedCards = cards.sorted().reduce(into: [Card: Int]()) { partialResult, card in
+            let cardsToIncrement = card == .joker ? Array(partialResult.keys) : [card]
+
+            for cardToIncrement in cardsToIncrement {
+                let existingCount = partialResult[cardToIncrement] ?? 0
+                partialResult[cardToIncrement] = existingCount + 1
+            }
         }.map { $0 }
+
+        precondition(!groupedCards.contains(where: { $0.key == .joker }), "Unexpected joker in \(groupedCards)")
 
         type =
             switch groupedCards.count {
+            // If 0 then they must all be joker.
+            case 0: .fiveOfAKind
             case 1: .fiveOfAKind
             case 2:
                 if groupedCards.first(where: { $0.value == 4 }) != nil {
