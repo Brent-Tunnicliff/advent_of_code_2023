@@ -2,7 +2,7 @@
 
 import Foundation
 
-private let allowLogging = true
+private let allowLogging = false
 
 func log(_ message: String) {
     guard allowLogging else {

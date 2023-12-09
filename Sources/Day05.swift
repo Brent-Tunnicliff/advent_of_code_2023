@@ -2,6 +2,8 @@
 
 import Foundation
 
+// Split part 1 and 2 into seperate extensions so them have clear separation and namespaces.
+// This is because I had to rethink so much of the solution for part 2.
 struct Day05: AdventDay {
     var data: String
 
@@ -10,66 +12,196 @@ struct Day05: AdventDay {
         precondition(values.count == Section.count, "Unexpected values count \(values.count)")
         return values
     }
+}
+
+// MARK: - Part 1
+
+extension Day05 {
+    private struct Seed {
+        let fertilizer: Int
+        let humidity: Int
+        let id: Int
+        let light: Int
+        let location: Int
+        let soil: Int
+        let temperature: Int
+        let water: Int
+    }
 
     func part1() async -> Any {
         async let seedValues = mapSeedValues(from: entities[Section.seeds.rawValue])
         async let sections = getSections()
         let seeds = await mapSeeds(seedValues, sections: sections)
 
-        return seeds.min { left, right in
+        let location = seeds.min { left, right in
             left.location < right.location
         }!.location
+
+        // Don't apply for unit tests that only define 4 seeds.
+        if seeds.count > 4 {
+            precondition(location == 84_470_622, "Caused a regressions")
+        }
+
+        return location
     }
 
-    func part2() async -> Any {
-        async let seedValues = mapSeedRangeValues(from: entities[Section.seeds.rawValue])
-        async let sections = getSections()
-        let seeds = await mapSeeds(seedValues, sections: sections)
+    private func mapSeeds(_ values: [Int], sections: SectionMap) async -> [Seed] {
+        log("mapSeeds start")
 
-        return seeds.min { left, right in
-            left.location < right.location
-        }!.location
+        var seeds: [Seed] = []
+        // Process these concurrently too.
+        await withTaskGroup(of: Seed.self) { group in
+            for value in values {
+                group.addTask {
+                    log("Creating seed object \(value)")
+
+                    let soil = map(source: value, to: sections[.seedToSoil])
+                    let fertilizer = map(source: soil, to: sections[.soilToFertilizer])
+                    let water = map(source: fertilizer, to: sections[.fertilizerToWater])
+                    let light = map(source: water, to: sections[.waterToLight])
+                    let temperature = map(source: light, to: sections[.lightToTemperature])
+                    let humidity = map(source: temperature, to: sections[.temperatureToHumidity])
+                    let location = map(source: humidity, to: sections[.humidityToLocation])
+
+                    return Seed(
+                        fertilizer: fertilizer,
+                        humidity: humidity,
+                        id: value,
+                        light: light,
+                        location: location,
+                        soil: soil,
+                        temperature: temperature,
+                        water: water
+                    )
+                }
+            }
+
+            for await seed in group {
+                seeds.append(seed)
+            }
+        }
+
+        log("mapSeeds finished")
+        return seeds
     }
 
     private func mapSeedValues(from input: String) async -> [Int] {
         mapLine(input.trimmingPrefix(Section.seeds.prefix))
     }
 
-    private func mapSeedRangeValues(from input: String) async -> [Int] {
-        log("mapSeedRangeValues start")
+    /// If there is no destination, then return the source value.
+    private func map(source: Int, to destination: RangeDictionary?) -> Int {
+        destination?[source] ?? source
+    }
 
-        var values: [Int] = []
-        // Process these concurrently too.
-        await withTaskGroup(of: [Int].self) { group in
-            group.addTask {
-                mapLine(input.trimmingPrefix(Section.seeds.prefix))
-                    .chunks(ofCount: 2)
-                    .reduce(into: [Int](), { partialResult, chunk in
-                        log("mapSeedRangeValues chunk start \(chunk)")
-                        // For some reason chunk[0] and chunk[1] are out of bounds.
-                        // Since it is an array of 2 then just `first` and `last` is fine.
-                        let start = chunk.first!
-                        let end = start + chunk.last!
-                        let values = (start...end).map { $0 }
-                        log("mapSeedRangeValues chunk finished \(chunk)")
-                        partialResult.append(contentsOf: values)
-                    })
+    private typealias SectionMap = [Section: RangeDictionary]
+
+    private struct RangeDictionary {
+        private var dictionary: [Range<Int>: Range<Int>] = [:]
+
+        var all: [(key: Range<Int>, value: Range<Int>)] {
+            dictionary.map { $0 }
+        }
+
+        var keys: [Range<Int>] {
+            dictionary.keys.map { $0 }
+        }
+
+        var values: [Range<Int>] {
+            dictionary.values.map { $0 }
+        }
+
+        subscript(key: Int) -> Int? {
+            guard
+                let matchingKey = first(containing: key)?.key,
+                let values = dictionary[matchingKey]
+            else {
+                log("key not found \(key)")
+                return nil
             }
 
-            for await chunkValue in group {
-                values.append(contentsOf: chunkValue)
+            // Convert the key index to the value index.
+            let index = key - matchingKey.lowerBound + values.lowerBound
+
+            return values[index]
+        }
+
+        subscript(key: Range<Int>) -> Range<Int>? {
+            get {
+                dictionary[key]
+            }
+            set {
+                if let newValue {
+                    precondition(
+                        key.count == newValue.count,
+                        "Key length \(key.count) and value length \(newValue.count) do not match for \(key) \(newValue)"
+                    )
+
+                    precondition(
+                        dictionary.keys.first(where: { $0.overlaps(key) }) == nil,
+                        "Key length \(key.count) and value length \(newValue.count) do not match for \(key) \(newValue)"
+                    )
+                }
+
+                dictionary[key] = newValue
             }
         }
 
-        log("mapSeedRangeValues finished")
-        return values
+        func first(containing value: Int) -> (key: Range<Int>, value: Range<Int>)? {
+            dictionary.first(where: { $0.key.containsValue(value) })
+        }
+
+        func nextAfter(_ value: Int) -> (key: Range<Int>, value: Range<Int>)? {
+            guard let matchingKey = first(containing: value) else {
+                return nil
+            }
+
+            let filteredDictionary = dictionary.filter {
+                $0.key.lowerBound < matchingKey.key.lowerBound
+            }
+
+            return filteredDictionary.sorted { $0.key.lowerBound < $1.key.lowerBound }.first
+        }
+
+        /// Merges dictionaries, if key conflict will keep current.
+        func merging(_ other: RangeDictionary) -> RangeDictionary {
+            .init(
+                dictionary: self.dictionary.merging(other.dictionary) { current, new in
+                    precondition(
+                        current == new, "Unexpected merging if \(current) and \(new)"
+                    )
+
+                    return current
+                }
+            )
+        }
+
+        func withPadding(from start: Int, to end: Int) -> RangeDictionary {
+            all.sorted(by: { $0.key.lowerBound < $1.key.lowerBound })
+                .enumerated()
+                .reduce(into: (count: start, result: RangeDictionary())) { partialResult, entity in
+                    let key = entity.element.key
+                    if partialResult.count < key.lowerBound {
+                        let padding = (partialResult.count..<key.lowerBound)
+                        partialResult.result[padding] = padding
+                    }
+
+                    partialResult.result[key] = entity.element.value
+                    partialResult.count = key.upperBound
+
+                    if entity.offset + 1 == all.count, end != key.upperBound {
+                        let padding = (key.upperBound..<end)
+                        partialResult.result[padding] = padding
+                    }
+                }.result
+        }
     }
 
-    private func getSections() async -> [Section: RangeDictionary] {
+    private func getSections() async -> SectionMap {
         log("getSections start")
 
         // Lets map the following sections in parallel since last task was getting a bit long in runtime.
-        var sections: [Section: RangeDictionary] = [:]
+        var sections: SectionMap = [:]
         await withTaskGroup(of: (Section, RangeDictionary).self) { group in
             // We already worked out seed, so ignore.
             for section in Section.allCases.filter({ $0 != .seeds }) {
@@ -116,136 +248,197 @@ struct Day05: AdventDay {
                 partialResult[sourceRange] = destinationRange
             }
     }
+}
 
-    private func mapLine(_ line: any StringProtocol) -> [Int] {
-        line.split(separator: " ")
-            .map { Int($0)! }
+// MARK: - Part 2
+
+extension Day05 {
+    private class Node {
+        let children: [Node]
+        let value: Range<Int>
+        let section: Section
+
+        init(children: [Node], value: Range<Int>, section: Section) {
+            self.children = children
+            self.section = section
+            self.value = value
+        }
+
+        var minValue: Int {
+            children.min(by: { $0.minValue < $1.minValue })?.minValue ?? value.lowerBound
+        }
     }
 
-    /// If there is no destination, then return the source value.
-    private func map(source: Int, to destination: RangeDictionary?) -> Int {
-        destination?[source] ?? source
+    func part2() async -> Any {
+        let sections = await getSections()
+        let seedRanges = mapLine(entities[Section.seeds.rawValue].trimmingPrefix(Section.seeds.prefix))
+            .chunks(ofCount: 2)
+            .map {
+                let start = $0.first!
+                let end = start + $0.last!
+                return (start..<end)
+            }
+
+        let seedNodes = seedRanges.map { seedRange in
+            Node(
+                children: createNodeChildren(for: .seeds, with: seedRange, from: sections),
+                value: seedRange,
+                section: .seeds
+            )
+        }
+
+        return seedNodes.map(\.minValue).min()!
     }
 
-    private func mapSeeds(_ values: [Int], sections: [Section: RangeDictionary]) async -> [Seed] {
-        log("mapSeeds start")
+    private func createNodeChildren(for section: Section, with range: Range<Int>, from sections: SectionMap) -> [Node] {
+        guard let currentSection = section.next else {
+            return []
+        }
 
-        var seeds: [Seed] = []
-        // Process these concurrently too.
-        await withTaskGroup(of: Seed.self) { group in
-            for value in values {
-                group.addTask {
-                    log("Creating seed object \(value)")
+        let overlappingKeys = sections[currentSection]!.all.compactMap {
+            getOverlappingRange(of: range, overlapping: $0)
+        }
 
-                    let soil = map(source: value, to: sections[.seedToSoil])
-                    let fertilizer = map(source: soil, to: sections[.soilToFertilizer])
-                    let water = map(source: fertilizer, to: sections[.fertilizerToWater])
-                    let light = map(source: water, to: sections[.waterToLight])
-                    let temperature = map(source: light, to: sections[.lightToTemperature])
-                    let humidity = map(source: temperature, to: sections[.temperatureToHumidity])
-                    let location = map(source: humidity, to: sections[.humidityToLocation])
+        return getPadding(overlappingKeys, from: range.lowerBound, to: range.upperBound)
+            .compactMap {
+                let value = $0.value
+                let children = createNodeChildren(
+                    for: currentSection,
+                    with: value,
+                    from: sections
+                )
 
-                    return Seed(
-                        fertilizer: fertilizer,
-                        humidity: humidity,
-                        id: value,
-                        light: light,
-                        location: location,
-                        soil: soil,
-                        temperature: temperature,
-                        water: water
-                    )
+                guard currentSection.isLast || !children.isEmpty else {
+                    return nil
                 }
+
+                return .init(children: children, value: value, section: currentSection)
             }
-
-            for await seed in group {
-                seeds.append(seed)
-            }
-        }
-
-        log("mapSeeds finished")
-        return seeds
-    }
-}
-
-private enum Section: Int, CaseIterable {
-    case seeds = 0
-    case seedToSoil
-    case soilToFertilizer
-    case fertilizerToWater
-    case waterToLight
-    case lightToTemperature
-    case temperatureToHumidity
-    case humidityToLocation
-
-    static var count: Int {
-        Self.allCases.count
     }
 
-    var prefix: String {
-        switch self {
-        case .seeds:
-            "seeds: "
-        case .seedToSoil:
-            "seed-to-soil map:\n"
-        case .soilToFertilizer:
-            "soil-to-fertilizer map:\n"
-        case .fertilizerToWater:
-            "fertilizer-to-water map:\n"
-        case .waterToLight:
-            "water-to-light map:\n"
-        case .lightToTemperature:
-            "light-to-temperature map:\n"
-        case .temperatureToHumidity:
-            "temperature-to-humidity map:\n"
-        case .humidityToLocation:
-            "humidity-to-location map:\n"
-        }
-    }
-}
-
-private struct Seed {
-    let fertilizer: Int
-    let humidity: Int
-    let id: Int
-    let light: Int
-    let location: Int
-    let soil: Int
-    let temperature: Int
-    let water: Int
-}
-
-private struct RangeDictionary {
-    var dictionary: [Range<Int>: Range<Int>] = [:]
-
-    subscript(key: Int) -> Int? {
-        guard
-            let matchingKey = dictionary.keys.first(where: { $0.contains(key) }),
-            let values = dictionary[matchingKey]
-        else {
-            log("key not found \(key)")
+    private func getOverlappingRange(
+        of key: Range<Int>,
+        overlapping other: (key: Range<Int>, value: Range<Int>)
+    ) -> (key: Range<Int>, value: Range<Int>)? {
+        guard key.overlaps(other.key) else {
             return nil
         }
 
-        // Convert the key index to the value index.
-        let index = key - matchingKey.lowerBound + values.lowerBound
+        let overlappedKeys = key.clamped(to: other.key)
 
-        return values[index]
+        let offset = overlappedKeys.lowerBound - other.key.lowerBound
+        let count = overlappedKeys.upperBound - overlappedKeys.lowerBound
+        let valueStart = other.value.lowerBound + offset
+        let valueEnd = valueStart + count
+        let overlappedValues = (valueStart..<valueEnd)
+
+        return (overlappedKeys, overlappedValues)
     }
 
-    subscript(key: Range<Int>) -> Range<Int>? {
-        get {
-            dictionary[key]
+    private func getPadding(
+        _ range: [(key: Range<Int>, value: Range<Int>)],
+        from start: Int,
+        to end: Int
+    ) -> [(key: Range<Int>, value: Range<Int>)] {
+        guard !range.isEmpty else {
+            let padding = start..<end
+            return [(padding, padding)]
         }
-        set {
-            if let newValue {
-                precondition(
-                    key.count == newValue.count,
-                    "Key length \(key.count) and value length \(newValue.count) do not match for \(key) \(newValue)"
-                )
+
+        return range.reduce(into: [(key: Range<Int>, value: Range<Int>)]()) { partialResult, item in
+            let previousUpperBound = partialResult.last?.key.upperBound ?? start
+
+            if previousUpperBound < item.key.lowerBound {
+                let padding = (previousUpperBound..<item.key.lowerBound)
+                partialResult.append((padding, padding))
             }
 
-            dictionary[key] = newValue
+            partialResult.append(item)
+
+            if item == range.last!, item.key.upperBound < end {
+                let padding = (item.key.upperBound..<end)
+                partialResult.append((padding, padding))
+            }
+
+            precondition(
+                partialResult.last!.key.upperBound <= end,
+                "Unexpected range \(partialResult.last!.key.upperBound) < \(end)"
+            )
+        }
+    }
+}
+
+// MARK: - Common
+
+private extension Day05 {
+
+    enum Section: Int, CaseIterable, Comparable {
+        case seeds = 0
+        case seedToSoil
+        case soilToFertilizer
+        case fertilizerToWater
+        case waterToLight
+        case lightToTemperature
+        case temperatureToHumidity
+        case humidityToLocation
+
+        static var count: Int {
+            Self.allCases.count
+        }
+
+        var isLast: Bool {
+            next == nil
+        }
+
+        var next: Section? {
+            Section(rawValue: rawValue + 1)
+        }
+
+        var prefix: String {
+            switch self {
+            case .seeds:
+                "seeds: "
+            case .seedToSoil:
+                "seed-to-soil map:\n"
+            case .soilToFertilizer:
+                "soil-to-fertilizer map:\n"
+            case .fertilizerToWater:
+                "fertilizer-to-water map:\n"
+            case .waterToLight:
+                "water-to-light map:\n"
+            case .lightToTemperature:
+                "light-to-temperature map:\n"
+            case .temperatureToHumidity:
+                "temperature-to-humidity map:\n"
+            case .humidityToLocation:
+                "humidity-to-location map:\n"
+            }
+        }
+
+        static func < (lhs: Day05.Section, rhs: Day05.Section) -> Bool {
+            lhs.rawValue < rhs.rawValue
+        }
+    }
+
+    func mapLine(_ line: any StringProtocol) -> [Int] {
+        line.split(separator: " ")
+            .map { Int($0)! }
+    }
+}
+
+private extension Range where Bound: Comparable {
+    /// Range extends ` Collection`, and when calling `contains(:)` to first converts the itself into an array.
+    /// For this project that has huge performance implications.
+    /// So  compare to the lower and upper bounds instead.
+    func containsValue(_ value: Bound) -> Bool {
+        lowerBound <= value && upperBound > value
+    }
+}
+
+private extension Collection where Element == Range<Int> {
+    var min: Element? {
+        self.min {
+            $0.lowerBound < $1.lowerBound
         }
     }
 }
