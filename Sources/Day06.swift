@@ -7,7 +7,7 @@ struct Day06: AdventDay {
     var data: String
 
     func part1() -> Any {
-        return getGames()
+        return getGames(separator: Regex { OneOrMore(.whitespace) })
             .map(getNumberOfWinningOptions)
             .reduce(into: 1) { partialResult, number in
                 partialResult = partialResult * number
@@ -15,28 +15,36 @@ struct Day06: AdventDay {
     }
 
     func part2() -> Any {
-        return "Not implemented"
+        return getGames(separator: Regex { One(":") })
+            .map(getNumberOfWinningOptions)
+            .reduce(into: 1) { partialResult, number in
+                partialResult = partialResult * number
+            }
     }
 }
 
 private extension Day06 {
     typealias Game = (time: Int, distance: Int)
 
-    func getGames() -> [Game] {
+    func getGames<Pattern>(separator: Regex<Pattern>) -> [Game] {
         let values = data.split(separator: "\n")
-            .map { process(line: String($0)) }
+            .map { process(line: String($0), separator: separator) }
 
         precondition(values.count == 2)
         precondition(values[0].count == values[1].count)
 
-        return values[0].enumerated().reduce(into: [Game]()) { partialResult, time in
-            partialResult.append((time.element, values[1][time.offset]))
-        }
+        return values[0].enumerated()
+            .reduce(into: [Game]()) { partialResult, time in
+                partialResult.append((time.element, values[1][time.offset]))
+            }
     }
 
-    func process(line: String) -> [Int] {
-        line.split(separator: Regex { OneOrMore(.whitespace) })
+    func process<Pattern>(line: String, separator: Regex<Pattern>) -> [Int] {
+        line.split(separator: separator)
             .dropFirst()
+            .map {
+                $0.filter(\.isNumber)
+            }
             .map {
                 Int($0)!
             }
