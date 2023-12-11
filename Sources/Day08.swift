@@ -21,7 +21,33 @@ struct Day08: AdventDay {
     }
 
     func part2() async -> Any {
-        "Not Implemented"
+        let entities = getEntities()
+        let startingNodes = entities.map.filter({ $0.key.last == "A" }).values
+        let directions = entities.directions.map { $0 }
+
+        let result = await withTaskGroup(of: Int.self) { group in
+            for node in startingNodes {
+                group.addTask {
+                    await getNumberOfStepsTakenToProgressThroughMap(
+                        map: entities.map,
+                        directions: directions,
+                        targetNode: "Z",
+                        currentCount: 0,
+                        currentNode: node,
+                        directionsRemaining: directions
+                    )
+                }
+            }
+
+            var results: [Int] = []
+            for await result in group {
+                results.append(result)
+            }
+
+            return results
+        }
+
+        return lcm(result)
     }
 
     private typealias Node = (left: String, right: String)
@@ -62,7 +88,9 @@ struct Day08: AdventDay {
             let nextDirection = directionsRemaining[0]
             let nextLocation = nextDirection == "L" ? currentNode.left : currentNode.right
 
-            guard nextLocation != targetNode else {
+            let expectFullTargetNodeMatch = targetNode.count == 3
+            let valueToCompare = expectFullTargetNodeMatch ? nextLocation : String(nextLocation.last!)
+            guard valueToCompare != targetNode else {
                 return nextCount
             }
 
@@ -78,5 +106,30 @@ struct Day08: AdventDay {
                 directionsRemaining: nextDirectionsRemaining
             )
         }.value
+    }
+
+    // Found the below solutions after getting hints from forums.
+    //  - https://forums.swift.org/t/advent-of-code-2023/68749/41
+    //  - https://www.reddit.com/r/adventofcode/comments/18df7px/2023_day_8_solutions/
+    //      - I was making sure to only read some comments and ignored solution posts, as I wanted to work this out.
+    //  - https://stackoverflow.com/a/28352004
+    //
+    // Man, this day beat me, I would not have gotten it without the above help.
+    // But that is what being a software engineer is all about, our sources :)
+
+    func lcm(_ vector: [Int]) -> Int {
+        vector.reduce(1, lcm)
+    }
+
+    func lcm(a: Int, b: Int) -> Int {
+        return (a / gcd(a, b)) * b
+    }
+
+    func gcd(_ a: Int, _ b: Int) -> Int {
+        var (a, b) = (a, b)
+        while b != 0 {
+            (a, b) = (b, a % b)
+        }
+        return abs(a)
     }
 }
