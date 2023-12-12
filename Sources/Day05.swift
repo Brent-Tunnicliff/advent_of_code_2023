@@ -37,11 +37,6 @@ extension Day05 {
             left.location < right.location
         }!.location
 
-        // Don't apply for unit tests that only define 4 seeds.
-        if seeds.count > 4 {
-            precondition(location == 84_470_622, "Caused a regressions")
-        }
-
         return location
     }
 

@@ -26,36 +26,25 @@ final class Day11Tests: XCTestCase {
         XCTAssertEqual(String(describing: result), "374")
     }
 
-    func testPart2() async throws {
+    func testPart2A() async throws {
+        // given
+        Day11.part2Input = 10
+
         // when
         let result = await Day11(data: testData).part2()
 
         // then
-        XCTAssertEqual(String(describing: result), "")
+        XCTAssertEqual(String(describing: result), "1030")
     }
 
-    func testExpanded() {
+    func testPart2B() async throws {
         // given
-        let grid = Day11(data: testData).getGrid()
-        let expectedResult = """
-            ....#........
-            .........#...
-            #............
-            .............
-            .............
-            ........#....
-            .#...........
-            ............#
-            .............
-            .............
-            .........#...
-            #....#.......
-            """
+        Day11.part2Input = 100
 
         // when
-        grid.expanded()
+        let result = await Day11(data: testData).part2()
 
         // then
-        XCTAssertEqual(grid.description, expectedResult)
+        XCTAssertEqual(String(describing: result), "8410")
     }
 }

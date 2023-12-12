@@ -7,42 +7,72 @@ struct Day11: AdventDay {
 
     func part1() async -> Any {
         let grid = getGrid()
-        precondition(grid.description.trimmingCharacters(in: .newlines) == data.trimmingCharacters(in: .newlines))
-
-        grid.expanded()
-
-        let galaxies = grid.values
-            .filter { $0.value == .galaxy }
-            .sorted(by: { $0.key < $1.key })
-
-        return galaxies.reduce(into: 0) { partialResult, position in
-            let filteredGalaxies = galaxies.filter {
-                $0.key > position.key
-            }
-
-            for galaxy in filteredGalaxies {
-                partialResult += getDistance(between: galaxy.key, and: position.key)
-            }
-        }
+        let whereToExpand = grid.getWhereToExpand()
+        return getDistancesBetweenGalaxies(grid, with: 2, and: whereToExpand)
     }
 
+    static var part2Input = 1_000_000
     func part2() async -> Any {
-        "Not implemented"
+        let grid = getGrid()
+        let whereToExpand = grid.getWhereToExpand()
+        return getDistancesBetweenGalaxies(grid, with: Self.part2Input, and: whereToExpand)
     }
 
-    func getGrid() -> Grid {
-        data.split(separator: "\n").enumerated().reduce(into: Grid()) { partialResult, item in
+    private func getGrid() -> Grid {
+        let grid = data.split(separator: "\n").enumerated().reduce(into: Grid()) { partialResult, item in
             let (y, line) = item
             for (x, value) in line.enumerated() {
                 partialResult[.init(x: x, y: y)] = value == "#" ? .galaxy : .empty
             }
         }
+
+        precondition(grid.description.trimmingCharacters(in: .newlines) == data.trimmingCharacters(in: .newlines))
+        return grid
     }
 
-    private func getDistance(between origin: Grid.Coordinates, and destination: Grid.Coordinates) -> Int {
-        let xDifference = max(origin.x, destination.x) - min(origin.x, destination.x)
-        let yDifference = max(origin.y, destination.y) - min(origin.y, destination.y)
+    private func getDistancesBetweenGalaxies(
+        _ grid: Grid,
+        with padding: Int,
+        and emptyIndexes: (x: [Int], y: [Int])
+    ) -> Int {
+        let galaxies = grid.values
+            .filter { $0.value == .galaxy }
+            .sorted(by: { $0.key < $1.key })
+
+        let result = galaxies.reduce(into: 0) { partialResult, position in
+            let filteredGalaxies = galaxies.filter {
+                $0.key > position.key
+            }
+
+            for galaxy in filteredGalaxies {
+                partialResult += getDistance(between: galaxy.key, and: position.key, with: padding, and: emptyIndexes)
+            }
+        }
+
+        return result
+    }
+
+    private func getDistance(
+        between origin: Grid.Coordinates,
+        and destination: Grid.Coordinates,
+        with padding: Int,
+        and emptyIndexes: (x: [Int], y: [Int])
+    ) -> Int {
+        let xDifference = getDifference(between: origin.x, and: destination.x, with: padding, and: emptyIndexes.x)
+        let yDifference = getDifference(between: origin.y, and: destination.y, with: padding, and: emptyIndexes.y)
         return xDifference + yDifference
+    }
+
+    private func getDifference(
+        between origin: Int,
+        and destination: Int,
+        with padding: Int,
+        and emptyIndexes: [Int]
+    ) -> Int {
+        let min = min(origin, destination)
+        let max = max(origin, destination)
+        let intersectingEmptyIndexes = (min...max).filter { emptyIndexes.contains($0) }
+        return max - min + (intersectingEmptyIndexes.count * (padding - 1))
     }
 }
 
@@ -102,17 +132,7 @@ extension Day11 {
             set { values[key] = newValue }
         }
 
-        func expanded() {
-            let whereToExpand = getWhereToExpand()
-            let modifiedCoordinates = getModifiedCoordinates(whereToExpand)
-            insertExpandedValues(at: whereToExpand)
-
-            for coordinates in modifiedCoordinates {
-                values[coordinates.key] = coordinates.value
-            }
-        }
-
-        private func getWhereToExpand() -> (x: [Int], y: [Int]) {
+        func getWhereToExpand() -> (x: [Int], y: [Int]) {
             let xIndexes = (0..<xLength).reduce(into: [Int]()) { partialResult, index in
                 guard values.filter({ $0.key.x == index && $0.value == .empty }).count == xLength else {
                     return
@@ -130,31 +150,6 @@ extension Day11 {
             }
 
             return (xIndexes, yIndexes)
-        }
-
-        private func getModifiedCoordinates(_ expanding: (x: [Int], y: [Int])) -> [Coordinates: Value] {
-            values.reduce(into: [Coordinates: Value]()) { partialResult, coordinates in
-                let newX = coordinates.key.x + expanding.x.filter { $0 <= coordinates.key.x }.count
-                let newY = coordinates.key.y + expanding.y.filter { $0 <= coordinates.key.y }.count
-                partialResult[.init(x: newX, y: newY)] = coordinates.value
-            }
-        }
-
-        private func insertExpandedValues(at expanding: (x: [Int], y: [Int])) {
-            let yLength = self.yLength + expanding.y.count
-            let xLength = self.xLength + expanding.x.count
-
-            for (index, x) in expanding.x.enumerated() {
-                for y in (0..<yLength) {
-                    values[.init(x: x + index, y: y)] = .empty
-                }
-            }
-
-            for (index, y) in expanding.y.enumerated() {
-                for x in (0..<xLength) {
-                    values[.init(x: x, y: y + index)] = .empty
-                }
-            }
         }
     }
 }
