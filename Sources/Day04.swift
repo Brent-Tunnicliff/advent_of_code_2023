@@ -6,7 +6,7 @@ struct Day04: AdventDay {
     var data: String
 
     private var cards: [Int: Card] {
-        return data.split(separator: "\n").reduce(into: [Int: Card]()) { partialResult, line in
+        data.split(separator: "\n").reduce(into: [Int: Card]()) { partialResult, line in
             let card = Card(line: String(line))
             partialResult[card.id] = card
         }

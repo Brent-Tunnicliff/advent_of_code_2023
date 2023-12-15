@@ -38,7 +38,7 @@ struct Day01: AdventDay {
     }
 
     func part2() -> Any {
-        return entities.reduce(into: 0) { partialResult, entity in
+        entities.reduce(into: 0) { partialResult, entity in
             let first = getDigit(entity, getKey: { $0.min() }) ?? 0
             let last = getDigit(entity, getKey: { $0.max() }) ?? 0
             let newValue = Int("\(first)\(last)") ?? 0

@@ -7,7 +7,7 @@ struct Day06: AdventDay {
     var data: String
 
     func part1() -> Any {
-        return getGames(separator: Regex { OneOrMore(.whitespace) })
+        getGames(separator: Regex { OneOrMore(.whitespace) })
             .map(getNumberOfWinningOptions)
             .reduce(into: 1) { partialResult, number in
                 partialResult = partialResult * number
@@ -15,7 +15,7 @@ struct Day06: AdventDay {
     }
 
     func part2() -> Any {
-        return getGames(separator: Regex { One(":") })
+        getGames(separator: Regex { One(":") })
             .map(getNumberOfWinningOptions)
             .reduce(into: 1) { partialResult, number in
                 partialResult = partialResult * number

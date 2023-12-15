@@ -122,7 +122,7 @@ struct Day08: AdventDay {
     }
 
     func lcm(a: Int, b: Int) -> Int {
-        return (a / gcd(a, b)) * b
+        (a / gcd(a, b)) * b
     }
 
     func gcd(_ a: Int, _ b: Int) -> Int {

@@ -19,7 +19,7 @@ struct Day03: AdventDay {
     }
 
     func part2() -> Any {
-        return getGearRatios(entities).reduce(into: 0) { partialResult, result in
+        getGearRatios(entities).reduce(into: 0) { partialResult, result in
             partialResult += result
         }
     }
@@ -39,11 +39,8 @@ private extension Day03 {
         let (numbers, symbols) = map(lines: lines)
         return numbers.reduce(into: [NumberResult]()) { partialResult, number in
             for rowIndex in (number.rowIndex - 1...number.rowIndex + 1) {
-                for columnIndex in (number.columnIndex.min()! - 1...number.columnIndex.max()! + 1) {
-                    guard symbols.contains(columnIndex: columnIndex, rowIndex: rowIndex) else {
-                        continue
-                    }
-
+                for columnIndex in (number.columnIndex.min()! - 1...number.columnIndex.max()! + 1)
+                where symbols.contains(columnIndex: columnIndex, rowIndex: rowIndex) {
                     partialResult.append(number)
                 }
             }
