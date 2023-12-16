@@ -18,8 +18,8 @@ struct Day11: AdventDay {
         return getDistancesBetweenGalaxies(grid, with: Self.part2Input, and: whereToExpand)
     }
 
-    private func getGrid() -> Grid {
-        let grid = data.split(separator: "\n").enumerated().reduce(into: Grid()) { partialResult, item in
+    private func getGrid() -> DayGrid {
+        let grid = data.split(separator: "\n").enumerated().reduce(into: DayGrid()) { partialResult, item in
             let (y, line) = item
             for (x, value) in line.enumerated() {
                 partialResult[.init(x: x, y: y)] = value == "#" ? .galaxy : .empty
@@ -31,7 +31,7 @@ struct Day11: AdventDay {
     }
 
     private func getDistancesBetweenGalaxies(
-        _ grid: Grid,
+        _ grid: DayGrid,
         with padding: Int,
         and emptyIndexes: (x: [Int], y: [Int])
     ) -> Int {
@@ -53,8 +53,8 @@ struct Day11: AdventDay {
     }
 
     private func getDistance(
-        between origin: Grid.Coordinates,
-        and destination: Grid.Coordinates,
+        between origin: DayGrid.Coordinates,
+        and destination: DayGrid.Coordinates,
         with padding: Int,
         and emptyIndexes: (x: [Int], y: [Int])
     ) -> Int {
@@ -76,80 +76,45 @@ struct Day11: AdventDay {
     }
 }
 
-extension Day11 {
-    class Grid: CustomStringConvertible {
-        struct Coordinates: Hashable, Comparable {
-            let x: Int
-            let y: Int
+private extension Day11 {
+    typealias DayGrid = Grid<Value>
 
-            static func < (lhs: Grid.Coordinates, rhs: Grid.Coordinates) -> Bool {
-                guard lhs.x != rhs.x else {
-                    return lhs.y < rhs.y
-                }
-
-                return lhs.x < rhs.x
-            }
-        }
-
-        enum Value: String {
-            case empty = "."
-            case galaxy = "#"
-        }
+    enum Value: String, CustomStringConvertible {
+        case empty = "."
+        case galaxy = "#"
 
         var description: String {
-            String(
-                values.keys.reduce(into: [Int: [Int: String]]()) { partialResult, coordinates in
-                    if partialResult[coordinates.y] == nil {
-                        partialResult[coordinates.y] = [:]
-                    }
-
-                    partialResult[coordinates.y]![coordinates.x] = values[coordinates]!.rawValue
-                }
-                .map { $0 }
-                .sorted(by: { $0.key < $1.key })
-                .reduce(into: "") { partialResult, item in
-                    for character in item.value.sorted(by: { $0.key < $1.key }) {
-                        partialResult += character.value
-                    }
-
-                    partialResult += "\n"
-                }
-                .dropLast()
-            )
+            self.rawValue
         }
+    }
+}
 
-        private(set) var values: [Coordinates: Value] = [:]
-        private var xLength: Int {
-            values.filter { $0.key.y == 0 }.count
-        }
+extension Grid where Value == Day11.Value {
+    private var xLength: Int {
+        values.filter { $0.key.y == 0 }.count
+    }
 
-        private var yLength: Int {
-            values.filter { $0.key.x == 0 }.count
-        }
+    private var yLength: Int {
+        values.filter { $0.key.x == 0 }.count
+    }
 
-        subscript(key: Coordinates) -> Value {
-            get { values[key]! }
-            set { values[key] = newValue }
-        }
-
-        func getWhereToExpand() -> (x: [Int], y: [Int]) {
-            let xIndexes = (0..<xLength).reduce(into: [Int]()) { partialResult, index in
-                guard values.filter({ $0.key.x == index && $0.value == .empty }).count == xLength else {
-                    return
-                }
-
-                partialResult.append(index)
+    func getWhereToExpand() -> (x: [Int], y: [Int]) {
+        let xIndexes = (0..<xLength).reduce(into: [Int]()) { partialResult, index in
+            guard values.filter({ $0.key.x == index && $0.value == .empty }).count == xLength else {
+                return
             }
 
-            let yIndexes = (0..<yLength).reduce(into: [Int]()) { partialResult, index in
-                guard values.filter({ $0.key.y == index && $0.value == .empty }).count == yLength else {
-                    return
-                }
+            partialResult.append(index)
+        }
 
-                partialResult.append(index)
+        let yIndexes = (0..<yLength).reduce(into: [Int]()) { partialResult, index in
+            guard values.filter({ $0.key.y == index && $0.value == .empty }).count == yLength else {
+                return
             }
 
-            return (xIndexes, yIndexes)
+            partialResult.append(index)
         }
+
+        return (xIndexes, yIndexes)
     }
 }
