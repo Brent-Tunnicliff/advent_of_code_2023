@@ -5,16 +5,25 @@ import XCTest
 @testable import AdventOfCode
 
 final class Day16Tests: XCTestCase {
-    let testData = """
-        MISSING
-        """
+    let testData = #"""
+        .|...\....
+        |.-.\.....
+        .....|-...
+        ........|.
+        ..........
+        .........\
+        ..../.\\..
+        .-.-/..|..
+        .|....-|.\
+        ..//.|....
+        """#
 
     func testPart1() async throws {
         // when
         let result = await Day16(data: testData).part1()
 
         // then
-        XCTAssertEqual(String(describing: result), "")
+        XCTAssertEqual(String(describing: result), "46")
     }
 
     func testPart2() async throws {

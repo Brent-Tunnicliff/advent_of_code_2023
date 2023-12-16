@@ -7,8 +7,8 @@ import Foundation
 struct Grid<Value: CustomStringConvertible & CaseIterable> {
     private(set) var values: [Coordinates: Value]
 
-    subscript(key: Coordinates) -> Value {
-        get { values[key]! }
+    subscript(key: Coordinates) -> Value? {
+        get { values[key] }
         set { values[key] = newValue }
     }
 
