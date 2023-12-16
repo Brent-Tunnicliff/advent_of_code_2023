@@ -19,13 +19,7 @@ struct Day11: AdventDay {
     }
 
     private func getGrid() -> DayGrid {
-        let grid = data.split(separator: "\n").enumerated().reduce(into: DayGrid()) { partialResult, item in
-            let (y, line) = item
-            for (x, value) in line.enumerated() {
-                partialResult[.init(x: x, y: y)] = value == "#" ? .galaxy : .empty
-            }
-        }
-
+        let grid = DayGrid(data: data)
         precondition(grid.description.trimmingCharacters(in: .newlines) == data.trimmingCharacters(in: .newlines))
         return grid
     }
@@ -79,7 +73,7 @@ struct Day11: AdventDay {
 private extension Day11 {
     typealias DayGrid = Grid<Value>
 
-    enum Value: String, CustomStringConvertible {
+    enum Value: String, CustomStringConvertible, CaseIterable {
         case empty = "."
         case galaxy = "#"
 

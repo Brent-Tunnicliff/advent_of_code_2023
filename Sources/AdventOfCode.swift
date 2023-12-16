@@ -41,7 +41,7 @@ struct AdventOfCode: AsyncParsableCommand {
     }()
 
     @Argument(help: "The day of the challenge. For December 1st, use '1'.")
-    var day: Int? = 9
+    var day: Int?
 
     @Flag(help: "Benchmark the time taken by the solution")
     var benchmark: Bool = Self.benchmark

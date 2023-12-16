@@ -4,12 +4,33 @@ import Foundation
 
 // MARK: - Grid
 
-struct Grid<Value: CustomStringConvertible> {
-    private(set) var values: [Coordinates: Value] = [:]
+struct Grid<Value: CustomStringConvertible & CaseIterable> {
+    private(set) var values: [Coordinates: Value]
 
     subscript(key: Coordinates) -> Value {
         get { values[key]! }
         set { values[key] = newValue }
+    }
+
+    init() {
+        self.values = [:]
+    }
+
+    init(values: [Coordinates: Value]) {
+        self.values = values
+    }
+
+    init(data: String) {
+        let values = data.split(separator: "\n")
+            .enumerated()
+            .reduce(into: [Coordinates: Value]()) { partialResult, item in
+                let (y, line) = item
+                for (x, value) in line.enumerated() {
+                    partialResult[.init(x: x, y: y)] = Value.allCases.first(where: { $0.description == String(value) })!
+                }
+            }
+
+        self.init(values: values)
     }
 }
 
