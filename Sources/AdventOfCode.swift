@@ -11,12 +11,12 @@ let allChallenges: [any AdventDay] = [
     Day06(),
     Day07(),
     Day08(),
-    // Day09(),
-    // Day10(),
+    Day09(),
+    Day10(),
     Day11(),
     Day12(),
-    // Day13(),
-    // Day14(),
+    Day13(),
+    Day14(),
     Day15(),
     // Day16(),
     // Day17(),
@@ -41,7 +41,7 @@ struct AdventOfCode: AsyncParsableCommand {
     }()
 
     @Argument(help: "The day of the challenge. For December 1st, use '1'.")
-    var day: Int?
+    var day: Int? = 9
 
     @Flag(help: "Benchmark the time taken by the solution")
     var benchmark: Bool = Self.benchmark
