@@ -10,15 +10,70 @@ struct Day16: AdventDay {
     }
 
     func part1() async -> Any {
-        grid.nextStep(
-            from: .init(x: -1, y: 0),
-            to: .right,
-            currentlyEnergised: [:]
-        ).keys.count
+        await performTraversal(
+            of: grid,
+            startingPosition: .init(coordinates: .init(x: -1, y: 0), direction: .right)
+        )
     }
 
     func part2() async -> Any {
-        "Not implemented"
+        let grid = self.grid
+        let lastXIndex = grid.values.keys.map(\.x).max()!
+        let lastYIndex = grid.values.keys.map(\.y).max()!
+
+        let bottomStartingPositions: [StartingPosition] = (0...lastXIndex).map {
+            .init(coordinates: .init(x: $0, y: lastYIndex + 1), direction: .up)
+        }
+
+        let leftStartingPositions: [StartingPosition] = (0...lastYIndex).map {
+            .init(coordinates: .init(x: -1, y: $0), direction: .right)
+        }
+
+        let rightStartingPositions: [StartingPosition] = (0...lastYIndex).map {
+            .init(coordinates: .init(x: lastYIndex + 1, y: $0), direction: .left)
+        }
+
+        let topStartingPositions: [StartingPosition] = (0...lastXIndex).map {
+            .init(coordinates: .init(x: $0, y: -1), direction: .down)
+        }
+
+        let startingPositions =
+            bottomStartingPositions
+            + leftStartingPositions
+            + rightStartingPositions
+            + topStartingPositions
+
+        let results = await withTaskGroup(of: Int.self) { group in
+            for startingPosition in startingPositions {
+                group.addTask {
+                    let result = await performTraversal(
+                        of: grid,
+                        startingPosition: startingPosition
+                    )
+
+                    return result
+                }
+            }
+
+            var results: [Int] = []
+            for await result in group {
+                results.append(result)
+                print("\(results.count) of \(startingPositions.count) finished")
+            }
+
+            return results
+        }
+
+        return results.max()!
+    }
+
+    private func performTraversal(of grid: DayGrid, startingPosition: StartingPosition) async -> Int {
+        await grid.nextStep(
+            from: startingPosition.coordinates,
+            to: startingPosition.direction,
+            currentlyEnergised: [:],
+            cache: .init()
+        ).keys.count
     }
 }
 
@@ -126,20 +181,26 @@ private extension Value {
 
 private typealias DayGrid = Grid<Value>
 private extension DayGrid {
-    private static var cache: [History] = []
+
+    subscript(key: Coordinates) -> Value? {
+        get { values[key] }
+    }
 
     func nextStep(
         from currentPosition: Coordinates,
         to direction: Direction,
-        currentlyEnergised: EnergisedGrid
-    ) -> EnergisedGrid {
-        let pathRanPreviously = Self.cache.contains(
-            where: { $0.direction == direction && $0.position == currentPosition }
-        )
-        guard !pathRanPreviously else {
+        currentlyEnergised: EnergisedGrid,
+        cache: Cache<History, Bool>
+    ) async -> EnergisedGrid {
+        let cacheKey = History(direction: direction, position: currentPosition)
+
+        let cachedValue = await cache.object(for: cacheKey)
+        guard cachedValue == nil else {
             log("breaking loop at \(currentPosition.x),\(currentPosition.y) towards \(direction)")
             return currentlyEnergised
         }
+
+        await cache.set(true, for: cacheKey)
 
         log("nextStep from \(currentPosition.x),\(currentPosition.y) towards \(direction)")
         let nextCoordinates: Coordinates =
@@ -158,24 +219,45 @@ private extension DayGrid {
             return currentlyEnergised
         }
 
-        Self.cache.append(.init(direction: direction, position: currentPosition))
         let nextDirections = nextPosition.nextDirections(traveling: direction)
+        let updatedCurrentlyEnergised = {
+            var grid = currentlyEnergised
+            grid[nextCoordinates] = true
+            return grid
+        }()
 
-        var updatedCurrentlyEnergised = currentlyEnergised
-        updatedCurrentlyEnergised[nextCoordinates] = true
+        let energisedResult = await withTaskGroup(of: EnergisedGrid.self) { group in
+            for nextDirection in nextDirections {
+                group.addTask {
+                    let results = await nextStep(
+                        from: nextCoordinates,
+                        to: nextDirection,
+                        currentlyEnergised: updatedCurrentlyEnergised,
+                        cache: cache
+                    )
 
-        for nextDirection in nextDirections {
-            updatedCurrentlyEnergised.merge(
-                nextStep(from: nextCoordinates, to: nextDirection, currentlyEnergised: updatedCurrentlyEnergised),
-                uniquingKeysWith: { current, _ in current }
-            )
+                    return results
+                }
+            }
+
+            var results = updatedCurrentlyEnergised
+            for await result in group {
+                results.merge(result, uniquingKeysWith: { current, _ in current })
+            }
+
+            return results
         }
 
-        return updatedCurrentlyEnergised
+        return energisedResult
     }
 }
 
-private struct History {
+private struct History: Hashable {
     let direction: Direction
     let position: DayGrid.Coordinates
+}
+
+private struct StartingPosition: Hashable {
+    let coordinates: DayGrid.Coordinates
+    let direction: Direction
 }

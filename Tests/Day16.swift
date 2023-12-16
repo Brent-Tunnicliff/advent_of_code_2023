@@ -31,6 +31,6 @@ final class Day16Tests: XCTestCase {
         let result = await Day16(data: testData).part2()
 
         // then
-        XCTAssertEqual(String(describing: result), "")
+        XCTAssertEqual(String(describing: result), "51")
     }
 }
