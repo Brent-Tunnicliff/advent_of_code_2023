@@ -20,7 +20,9 @@ struct Day09: AdventDay {
     }
 
     func part2() async -> Any {
-        "Not implemented"
+        addingPreviousNumbers(for: getNumbers()).reduce(into: 0) { partialResult, numbers in
+            partialResult += numbers.first!.value
+        }
     }
 
     private func getNumbers() -> [[Number]] {
@@ -67,6 +69,42 @@ struct Day09: AdventDay {
         }
 
         return .init(value: value)
+    }
+
+    private func addingPreviousNumbers(for allNumbers: [[Number]]) -> [[Number]] {
+        allNumbers.reduce(into: [[Number]]()) { partialResult, numbers in
+            let firstNumber = numbers.first!
+            let previousNumber = getPreviousValue(from: firstNumber)
+            firstNumber.previous = previousNumber
+
+            injectChildren(into: [previousNumber, firstNumber])
+
+            partialResult.append([previousNumber] + numbers)
+        }
+    }
+
+    private func getPreviousValue(from number: Number) -> Number {
+        var currentNumber: Number? = getLowestNextChild(of: number)
+        var value = currentNumber!.value
+        while currentNumber != nil {
+            guard let previousParent = currentNumber!.previousParent else {
+                currentNumber = nil
+                continue
+            }
+
+            value = previousParent.value - value
+            currentNumber = previousParent
+        }
+
+        return .init(value: value)
+    }
+
+    private func getLowestNextChild(of number: Number) -> Number {
+        guard let child = number.nextChild else {
+            return number
+        }
+
+        return getLowestNextChild(of: child)
     }
 
     private func injectChildren(into numbers: [Number]) {
