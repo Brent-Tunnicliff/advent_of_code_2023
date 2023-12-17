@@ -61,40 +61,72 @@ final class GridTests: XCTestCase {
         XCTAssertEqual(result.y, 0)
     }
 
-    func testGetCoordinatesEast() throws {
+    func testGetCoordinatesEastInvalid() throws {
+        // when
+        let result = TestGrid(data: testData).getCoordinates(from: .init(x: 9, y: 9), direction: .east)
+
+        // then
+        XCTAssertNil(result)
+    }
+
+    func testGetCoordinatesEastValid() throws {
         // when
         let result = TestGrid(data: testData).getCoordinates(from: .init(x: 0, y: 0), direction: .east)
 
         // then
-        XCTAssertEqual(result.x, 1)
-        XCTAssertEqual(result.y, 0)
+        XCTAssertEqual(result?.x, 1)
+        XCTAssertEqual(result?.y, 0)
     }
 
-    func testGetCoordinatesNorth() throws {
+    func testGetCoordinatesNorthInvalid() throws {
         // when
         let result = TestGrid(data: testData).getCoordinates(from: .init(x: 0, y: 0), direction: .north)
 
         // then
-        XCTAssertEqual(result.x, 0)
-        XCTAssertEqual(result.y, -1)
+        XCTAssertNil(result)
     }
 
-    func testGetCoordinatesSouth() throws {
+    func testGetCoordinatesNorthValid() throws {
+        // when
+        let result = TestGrid(data: testData).getCoordinates(from: .init(x: 9, y: 9), direction: .north)
+
+        // then
+        XCTAssertEqual(result?.x, 9)
+        XCTAssertEqual(result?.y, 8)
+    }
+
+    func testGetCoordinatesSouthInvalid() throws {
+        // when
+        let result = TestGrid(data: testData).getCoordinates(from: .init(x: 9, y: 9), direction: .south)
+
+        // then
+        XCTAssertNil(result)
+    }
+
+    func testGetCoordinatesSouthValid() throws {
         // when
         let result = TestGrid(data: testData).getCoordinates(from: .init(x: 0, y: 0), direction: .south)
 
         // then
-        XCTAssertEqual(result.x, 0)
-        XCTAssertEqual(result.y, 1)
+        XCTAssertEqual(result?.x, 0)
+        XCTAssertEqual(result?.y, 1)
     }
 
-    func testGetCoordinatesWest() throws {
+    func testGetCoordinatesWestInvalid() throws {
         // when
         let result = TestGrid(data: testData).getCoordinates(from: .init(x: 0, y: 0), direction: .west)
 
         // then
-        XCTAssertEqual(result.x, -1)
-        XCTAssertEqual(result.y, 0)
+        XCTAssertNil(result)
+    }
+
+    func testGetCoordinatesWest() throws {
+        // when
+        let result = TestGrid(data: testData).getCoordinates(from: .init(x: 9, y: 9), direction: .west)
+
+        // then
+        XCTAssertEqual(result?.x, 8)
+        XCTAssertEqual(result?.y, 9)
     }
 }
 

@@ -99,13 +99,15 @@ extension Grid {
 // MARK: Traversal
 
 extension Grid {
-    func getCoordinates(from: Coordinates, direction: CompassDirection) -> Coordinates {
-        switch direction {
-        case .east: .init(x: from.x + 1, y: from.y)
-        case .north: .init(x: from.x, y: from.y - 1)
-        case .south: .init(x: from.x, y: from.y + 1)
-        case .west: .init(x: from.x - 1, y: from.y)
-        }
+    func getCoordinates(from: Coordinates, direction: CompassDirection) -> Coordinates? {
+        let coordinates: Coordinates =
+            switch direction {
+            case .east: .init(x: from.x + 1, y: from.y)
+            case .north: .init(x: from.x, y: from.y - 1)
+            case .south: .init(x: from.x, y: from.y + 1)
+            case .west: .init(x: from.x - 1, y: from.y)
+            }
+        return values.keys.contains(coordinates) ? coordinates : nil
     }
 }
 
