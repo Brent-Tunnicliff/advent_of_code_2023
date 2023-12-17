@@ -6,7 +6,7 @@ struct Day16: AdventDay {
     var data: String
 
     private var grid: DayGrid {
-        DayGrid(dataForEnum: data)
+        DayGrid(data: data)
     }
 
     func part1() async -> Any {
@@ -58,7 +58,7 @@ struct Day16: AdventDay {
             var results: [Int] = []
             for await result in group {
                 results.append(result)
-                log("\(results.count) of \(startingPositions.count) finished")
+                print("\(results.count) of \(startingPositions.count) finished")
             }
 
             return results
@@ -77,7 +77,7 @@ struct Day16: AdventDay {
     }
 }
 
-private typealias EnergisedGrid = [DayGrid.Coordinates: Bool]
+private typealias EnergisedGrid = [Coordinates: Bool]
 
 private enum Direction {
     case down
@@ -254,10 +254,10 @@ private extension DayGrid {
 
 private struct History: Hashable {
     let direction: Direction
-    let position: DayGrid.Coordinates
+    let position: Coordinates
 }
 
 private struct StartingPosition: Hashable {
-    let coordinates: DayGrid.Coordinates
+    let coordinates: Coordinates
     let direction: Direction
 }

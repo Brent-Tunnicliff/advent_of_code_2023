@@ -19,7 +19,7 @@ struct Day11: AdventDay {
     }
 
     private func getGrid() -> DayGrid {
-        let grid = DayGrid(dataForEnum: data)
+        let grid = DayGrid(data: data)
         precondition(grid.description.trimmingCharacters(in: .newlines) == data.trimmingCharacters(in: .newlines))
         return grid
     }
@@ -47,8 +47,8 @@ struct Day11: AdventDay {
     }
 
     private func getDistance(
-        between origin: DayGrid.Coordinates,
-        and destination: DayGrid.Coordinates,
+        between origin: Coordinates,
+        and destination: Coordinates,
         with padding: Int,
         and emptyIndexes: (x: [Int], y: [Int])
     ) -> Int {

@@ -5,7 +5,7 @@ import XCTest
 @testable import AdventOfCode
 
 final class Day12Tests: XCTestCase {
-    let testData = """
+    private let testData = """
         ???.### 1,1,3
         .??..??...?##. 1,1,3
         ?#?#?#?#?#?#?#? 1,3,1,6

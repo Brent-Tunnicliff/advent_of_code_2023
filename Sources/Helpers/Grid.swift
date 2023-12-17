@@ -19,16 +19,14 @@ struct Grid<Value: CustomStringConvertible> {
     init(values: [Coordinates: Value]) {
         self.values = values
     }
-}
 
-extension Grid where Value: CaseIterable {
-    init(dataForEnum data: String) {
+    init(data: String, valueMapper: (String) -> Value) {
         let values = data.split(separator: "\n")
             .enumerated()
             .reduce(into: [Coordinates: Value]()) { partialResult, item in
                 let (y, line) = item
                 for (x, value) in line.enumerated() {
-                    partialResult[.init(x: x, y: y)] = Value.allCases.first(where: { $0.description == String(value) })!
+                    partialResult[.init(x: x, y: y)] = valueMapper(String(value))
                 }
             }
 
@@ -36,20 +34,7 @@ extension Grid where Value: CaseIterable {
     }
 }
 
-extension Grid where Value == String {
-    init(dataForString data: String) {
-        let values = data.split(separator: "\n")
-            .enumerated()
-            .reduce(into: [Coordinates: Value]()) { partialResult, item in
-                let (y, line) = item
-                for (x, value) in line.enumerated() {
-                    partialResult[.init(x: x, y: y)] = String(value)
-                }
-            }
-
-        self.init(values: values)
-    }
-}
+// MARK: CustomStringConvertible
 
 extension Grid: CustomStringConvertible {
     var description: String {
@@ -75,17 +60,90 @@ extension Grid: CustomStringConvertible {
     }
 }
 
-// MARK: - Coordinates
+// MARK: Positions
 
 extension Grid {
-    struct Coordinates: Hashable {
-        let x: Int
-        let y: Int
+    var bottomLeft: Coordinates {
+        .init(x: minX, y: maxY)
+    }
+
+    var bottomRight: Coordinates {
+        .init(x: maxX, y: maxY)
+    }
+
+    var topLeft: Coordinates {
+        .init(x: minX, y: minY)
+    }
+
+    var topRight: Coordinates {
+        .init(x: maxX, y: minY)
+    }
+
+    private var minX: Int {
+        self.values.keys.map(\.x).min()!
+    }
+
+    private var minY: Int {
+        self.values.keys.map(\.y).min()!
+    }
+
+    private var maxX: Int {
+        self.values.keys.map(\.x).max()!
+    }
+
+    private var maxY: Int {
+        self.values.keys.map(\.y).max()!
     }
 }
 
-extension Grid.Coordinates: Comparable {
-    static func < (lhs: Grid.Coordinates, rhs: Grid.Coordinates) -> Bool {
+// MARK: Traversal
+
+extension Grid {
+    func getCoordinates(from: Coordinates, direction: CompassDirection) -> Coordinates {
+        switch direction {
+        case .east: .init(x: from.x + 1, y: from.y)
+        case .north: .init(x: from.x, y: from.y - 1)
+        case .south: .init(x: from.x, y: from.y + 1)
+        case .west: .init(x: from.x - 1, y: from.y)
+        }
+    }
+}
+
+// MARK: Value is CaseIterable
+
+extension Grid where Value: CaseIterable {
+    init(data: String) {
+        self.init(data: data) { value in
+            Value.allCases.first(where: { $0.description == String(value) })!
+        }
+    }
+}
+
+// MARK: Value is Int
+
+extension Grid where Value == Int {
+    init(data: String) {
+        self.init(data: data) { Int($0)! }
+    }
+}
+
+// MARK: Value is String
+
+extension Grid where Value == String {
+    init(data: String) {
+        self.init(data: data) { $0 }
+    }
+}
+
+// MARK: - Coordinates
+
+struct Coordinates: Hashable {
+    let x: Int
+    let y: Int
+}
+
+extension Coordinates: Comparable {
+    static func < (lhs: Coordinates, rhs: Coordinates) -> Bool {
         guard lhs.x != rhs.x else {
             return lhs.y < rhs.y
         }

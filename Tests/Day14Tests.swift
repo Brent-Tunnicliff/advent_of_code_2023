@@ -4,14 +4,14 @@ import XCTest
 
 @testable import AdventOfCode
 
-final class Day24Tests: XCTestCase {
-    let testData = """
+final class Day14Tests: XCTestCase {
+    private let testData = """
         MISSING
         """
 
     func testPart1() async throws {
         // when
-        let result = await Day24(data: testData).part1()
+        let result = await Day14(data: testData).part1()
 
         // then
         XCTAssertEqual(String(describing: result), "")
@@ -19,7 +19,7 @@ final class Day24Tests: XCTestCase {
 
     func testPart2() async throws {
         // when
-        let result = await Day24(data: testData).part2()
+        let result = await Day14(data: testData).part2()
 
         // then
         XCTAssertEqual(String(describing: result), "")

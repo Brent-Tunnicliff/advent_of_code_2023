@@ -5,7 +5,7 @@ import XCTest
 @testable import AdventOfCode
 
 final class Day20Tests: XCTestCase {
-    let testData = """
+    private let testData = """
         MISSING
         """
 
