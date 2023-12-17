@@ -19,7 +19,7 @@ final class GridTests: XCTestCase {
 
     func testDescription() throws {
         // given
-        let grid = TestGrid(data: testData)
+        let grid = TestGrid(dataForEnum: testData)
 
         // when
         let result = grid.description

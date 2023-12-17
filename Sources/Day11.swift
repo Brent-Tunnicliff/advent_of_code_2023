@@ -19,7 +19,7 @@ struct Day11: AdventDay {
     }
 
     private func getGrid() -> DayGrid {
-        let grid = DayGrid(data: data)
+        let grid = DayGrid(dataForEnum: data)
         precondition(grid.description.trimmingCharacters(in: .newlines) == data.trimmingCharacters(in: .newlines))
         return grid
     }

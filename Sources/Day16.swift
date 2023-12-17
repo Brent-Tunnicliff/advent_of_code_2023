@@ -6,7 +6,7 @@ struct Day16: AdventDay {
     var data: String
 
     private var grid: DayGrid {
-        DayGrid(data: data)
+        DayGrid(dataForEnum: data)
     }
 
     func part1() async -> Any {
@@ -58,7 +58,7 @@ struct Day16: AdventDay {
             var results: [Int] = []
             for await result in group {
                 results.append(result)
-                print("\(results.count) of \(startingPositions.count) finished")
+                log("\(results.count) of \(startingPositions.count) finished")
             }
 
             return results
