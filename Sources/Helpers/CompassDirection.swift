@@ -2,7 +2,7 @@
 
 import Foundation
 
-enum CompassDirection {
+enum CompassDirection: CaseIterable {
     case east
     case north
     case south

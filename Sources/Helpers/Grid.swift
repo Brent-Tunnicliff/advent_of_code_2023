@@ -100,13 +100,7 @@ extension Grid {
 
 extension Grid {
     func getCoordinates(from: Coordinates, direction: CompassDirection) -> Coordinates? {
-        let coordinates: Coordinates =
-            switch direction {
-            case .east: .init(x: from.x + 1, y: from.y)
-            case .north: .init(x: from.x, y: from.y - 1)
-            case .south: .init(x: from.x, y: from.y + 1)
-            case .west: .init(x: from.x - 1, y: from.y)
-            }
+        let coordinates = from.next(in: direction)
         return values.keys.contains(coordinates) ? coordinates : nil
     }
 }
@@ -116,7 +110,7 @@ extension Grid {
 extension Grid where Value: CaseIterable {
     init(data: String) {
         self.init(data: data) { value in
-            Value.allCases.first(where: { $0.description == String(value) })!
+            Value.allCases.first(where: { $0.description == value })!
         }
     }
 }
@@ -134,28 +128,5 @@ extension Grid where Value == Int {
 extension Grid where Value == String {
     init(data: String) {
         self.init(data: data) { $0 }
-    }
-}
-
-// MARK: - Coordinates
-
-struct Coordinates: Hashable {
-    let x: Int
-    let y: Int
-}
-
-extension Coordinates: Comparable {
-    static func < (lhs: Coordinates, rhs: Coordinates) -> Bool {
-        guard lhs.x != rhs.x else {
-            return lhs.y < rhs.y
-        }
-
-        return lhs.x < rhs.x
-    }
-}
-
-extension Coordinates: CustomDebugStringConvertible {
-    var debugDescription: String {
-        "\(x),\(y)"
     }
 }
