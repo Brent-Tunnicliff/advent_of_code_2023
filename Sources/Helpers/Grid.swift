@@ -153,3 +153,9 @@ extension Coordinates: Comparable {
         return lhs.x < rhs.x
     }
 }
+
+extension Coordinates: CustomDebugStringConvertible {
+    var debugDescription: String {
+        "\(x),\(y)"
+    }
+}

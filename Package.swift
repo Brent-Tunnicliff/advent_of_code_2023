@@ -5,6 +5,7 @@ let dependencies: [Target.Dependency] = [
     .product(name: "Algorithms", package: "swift-algorithms"),
     .product(name: "Collections", package: "swift-collections"),
     .product(name: "ArgumentParser", package: "swift-argument-parser"),
+    .product(name: "SwiftPriorityQueue", package: "SwiftPriorityQueue")
 ]
 
 let package = Package(
@@ -26,7 +27,11 @@ let package = Package(
         .package(
             url: "https://github.com/Brent-Tunnicliff/swift-format-plugin", 
             .upToNextMajor(from: "1.0.0")
-        )
+        ),
+        .package(
+            url: "https://github.com/davecom/SwiftPriorityQueue",
+            .upToNextMajor(from: "1.4.0")
+        ),
     ],
     targets: [
         .executableTarget(

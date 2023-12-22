@@ -80,6 +80,15 @@
         "revision" : "6ad4ea24b01559dde0773e3d091f1b9e36175036",
         "version" : "509.0.2"
       }
+    },
+    {
+      "identity" : "swiftpriorityqueue",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/davecom/SwiftPriorityQueue",
+      "state" : {
+        "revision" : "42e8789c6d2464254c2e0322bd824ec509de678b",
+        "version" : "1.4.0"
+      }
     }
   ],
   "version" : 2
