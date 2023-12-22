@@ -5,7 +5,7 @@ import Foundation
 struct Day18: AdventDay {
     var data: String
 
-    private var instructions: [Instruction] {
+    private var partOneInstructions: [Instruction] {
         data.split(separator: "\n").map {
             let sections = $0.split(separator: " ").map { String($0) }
 
@@ -17,18 +17,67 @@ struct Day18: AdventDay {
         }
     }
 
-    private var grid: DayGrid {
-        DayGrid(instructions: instructions)
+    private var partTwoInstructions: [Instruction] {
+        data.split(separator: "\n").map {
+            let sections = $0.split(separator: " ").map { String($0) }
+
+            let hex = sections[2].trimmingCharacters(in: ["(", ")"])
+            let distance = UInt64(hex.dropLast().trimmingPrefix("#"), radix: 16)!
+            let direction = CompassDirection(value: String(hex.last!))
+
+            return Instruction(colour: "\(sections[0]) \(sections[1])", direction: direction, distance: Int(distance))
+        }
     }
 
     func part1() async -> Any {
-        let grid = self.grid
-        let filled = grid.filled()
-        return filled.values.count
+        let instructions = partOneInstructions
+        let points = map(instructions: instructions)
+        return calculateArea(points, instructions)
     }
 
     func part2() async -> Any {
-        "Not implemented"
+        let instructions = partTwoInstructions
+        let points = map(instructions: instructions)
+        return calculateArea(points, instructions)
+    }
+
+    private func map(instructions: [Instruction]) -> [Coordinates] {
+        instructions.reduce(into: [Coordinates]([.init(x: 0, y: 0)])) { partialResult, instruction in
+            let lastPoint = partialResult.last!
+            partialResult.append(lastPoint.next(in: instruction.direction, distance: instruction.distance))
+        }
+    }
+
+    private func calculateArea(_ points: [Coordinates], _ instructions: [Instruction]) -> Int {
+        let polygonArea = calculatePolygonArea(points)
+        let perimeterLength = calculatePerimeterLength(instructions)
+        let interiorArea = calculateInteriorArea(area: polygonArea, perimeter: perimeterLength)
+        return interiorArea + perimeterLength
+    }
+
+    private func calculatePolygonArea(_ points: [Coordinates]) -> Int {
+        let count = points.count
+
+        var result = 0
+        for (index, point) in points.enumerated() {
+            let other = index < count - 1 ? points[index + 1] : points[0]
+            result += point.x * other.y - point.y * other.x
+        }
+
+        return result / 2
+    }
+
+    private func calculatePerimeterLength(_ instructions: [Instruction]) -> Int {
+        var result = 0
+        for instruction in instructions {
+            result += instruction.distance
+        }
+
+        return result
+    }
+
+    private func calculateInteriorArea(area: Int, perimeter: Int) -> Int {
+        area - (perimeter / 2) + 1
     }
 }
 
@@ -44,54 +93,11 @@ private extension CompassDirection {
     init(value: String) {
         self =
             switch value.uppercased() {
-            case "D": .south
-            case "L": .west
-            case "R": .east
-            case "U": .north
+            case "D", "1": .south
+            case "L", "2": .west
+            case "R", "0": .east
+            case "U", "3": .north
             default: preconditionFailure("Unexpected value \(value)")
             }
-    }
-}
-
-private extension DayGrid {
-    init(instructions: [Instruction]) {
-        var lastCoordinates = Coordinates(x: 0, y: 0)
-        let results = instructions.reduce(into: [Coordinates: String]()) { partialResult, instruction in
-            for _ in (0..<instruction.distance) {
-                let newCoordinates = lastCoordinates.next(in: instruction.direction)
-                partialResult[newCoordinates] = instruction.colour
-                lastCoordinates = newCoordinates
-            }
-        }
-
-        self.init(values: results)
-    }
-
-    func filled() -> DayGrid {
-        let filledValue = "filled"
-        var newGrid = DayGrid(values: values)
-        let firstCoordinates = newGrid.values.keys.min().map {
-            Coordinates(x: $0.x + 1, y: $0.y + 1)
-        }!
-
-        var coordinatesToFill = Set([firstCoordinates])
-
-        while !coordinatesToFill.isEmpty {
-            let current = coordinatesToFill.popFirst()!
-            newGrid[current] = filledValue
-
-            for next in newGrid.fillSurrounding(current) {
-                coordinatesToFill.insert(next)
-            }
-        }
-
-        return newGrid
-    }
-
-    private func fillSurrounding(_ coordinates: Coordinates) -> [Coordinates] {
-        CompassDirection.allCases.compactMap {
-            let newCoordinates = coordinates.next(in: $0)
-            return self[newCoordinates] == nil ? newCoordinates : nil
-        }
     }
 }

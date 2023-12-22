@@ -8,12 +8,12 @@ struct Coordinates: Hashable {
 }
 
 extension Coordinates {
-    func next(in direction: CompassDirection) -> Coordinates {
+    func next(in direction: CompassDirection, distance: Int = 1) -> Coordinates {
         switch direction {
-        case .east: .init(x: x + 1, y: y)
-        case .north: .init(x: x, y: y - 1)
-        case .south: .init(x: x, y: y + 1)
-        case .west: .init(x: x - 1, y: y)
+        case .east: .init(x: x + distance, y: y)
+        case .north: .init(x: x, y: y - distance)
+        case .south: .init(x: x, y: y + distance)
+        case .west: .init(x: x - distance, y: y)
         }
     }
 }
