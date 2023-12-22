@@ -39,7 +39,7 @@ struct Day13: AdventDay {
             partialResult += value
         }
 
-        if !testsAreRunning {
+        if testsAreNotRunning {
             // Having lots of trouble with this one,
             // so checking against my submitted answers.
             precondition(result < 74304, "Answer is too high")

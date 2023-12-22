@@ -3,3 +3,5 @@
 import Foundation
 
 let testsAreRunning = ProcessInfo.processInfo.arguments.contains("TESTING")
+
+let testsAreNotRunning = !testsAreRunning

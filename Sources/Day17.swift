@@ -20,7 +20,7 @@ struct Day17: AdventDay {
             destination: grid.bottomRight
         )
 
-        if !testsAreRunning {
+        if testsAreNotRunning {
             assert(result < 1142, "\(result) is too high")
         }
 
@@ -61,7 +61,7 @@ struct Day17: AdventDay {
 private struct HeatLossCacheKey: Hashable {
     let position: Coordinates
     let direction: CompassDirection
-    let atMaxDirection: Bool
+    let lastThreeDirections: [CompassDirection]
 }
 
 // MARK: - DayGrid
@@ -168,7 +168,7 @@ private struct NextStepInput: Comparable {
         .init(
             position: from,
             direction: direction,
-            atMaxDirection: history.getLast(2).filter { $0.direction == direction }.count == 2
+            lastThreeDirections: history.getLast(2).map(\.direction) + [direction]
         )
     }
 
