@@ -29,11 +29,28 @@ final class Day17Tests: XCTestCase {
         XCTAssertEqual(String(describing: result), "102")
     }
 
-    func testPart2() async throws {
+    func testPart2A() async throws {
         // when
         let result = await Day17(data: testData).part2()
 
         // then
-        XCTAssertEqual(String(describing: result), "")
+        XCTAssertEqual(String(describing: result), "94")
+    }
+
+    func testPart2B() async throws {
+        // given
+        let testData = """
+            111111111111
+            999999999991
+            999999999991
+            999999999991
+            999999999991
+            """
+
+        // when
+        let result = await Day17(data: testData).part2()
+
+        // then
+        XCTAssertEqual(String(describing: result), "71")
     }
 }

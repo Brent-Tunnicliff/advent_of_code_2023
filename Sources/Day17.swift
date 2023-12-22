@@ -17,7 +17,9 @@ struct Day17: AdventDay {
         let result = await performTraversal(
             of: grid,
             startingLocation: grid.topLeft,
-            destination: grid.bottomRight
+            destination: grid.bottomRight,
+            maxStraightDistance: 3,
+            minStraightDistance: 1
         )
 
         if testsAreNotRunning {
@@ -28,13 +30,24 @@ struct Day17: AdventDay {
     }
 
     func part2() async -> Any {
-        "Not implemented"
+        let grid = self.grid
+        let result = await performTraversal(
+            of: grid,
+            startingLocation: grid.topLeft,
+            destination: grid.bottomRight,
+            maxStraightDistance: 10,
+            minStraightDistance: 4
+        )
+
+        return result
     }
 
     private func performTraversal(
         of grid: DayGrid,
         startingLocation: Coordinates,
-        destination: Coordinates
+        destination: Coordinates,
+        maxStraightDistance: Int,
+        minStraightDistance: Int
     ) async -> HeatLoss {
         var results: [HeatLoss?] = []
         let directions: [CompassDirection] = [.south, .east]
@@ -46,7 +59,9 @@ struct Day17: AdventDay {
                         from: startingLocation,
                         direction: direction,
                         heatLoss: 0,
-                        history: .init()
+                        history: .init(),
+                        maxStraightDistance: maxStraightDistance,
+                        minStraightDistance: minStraightDistance
                     )
                 )
             )
@@ -61,7 +76,7 @@ struct Day17: AdventDay {
 private struct HeatLossCacheKey: Hashable {
     let position: Coordinates
     let direction: CompassDirection
-    let lastThreeDirections: [CompassDirection]
+    let lastDirections: [CompassDirection]
 }
 
 // MARK: - DayGrid
@@ -97,7 +112,7 @@ private class DayGrid {
         return lowestValueCache.min()
     }
 
-    func processNextStep(_ input: NextStepInput) async {
+    private func processNextStep(_ input: NextStepInput) async {
         // If the current path is longer than the known fastest path, then kill it.
         let lowestValue = lowestValueCache.min() ?? .max
         guard input.heatLoss < lowestValue else {
@@ -115,7 +130,8 @@ private class DayGrid {
 
         heatLossCache[cacheKey] = input.heatLoss
 
-        guard position != input.destination else {
+        let hasHitMinimum = hasHitStraightLimit(for: input, count: input.minStraightDistance - 1)
+        if position == input.destination && hasHitMinimum {
             let totalHeatLoss = input.heatLoss + grid[position]!
             log("Found path with heat loss of \(totalHeatLoss)")
             lowestValueCache.append(totalHeatLoss)
@@ -124,18 +140,12 @@ private class DayGrid {
 
         log("Moving from \(input.from) \(input.direction) to location \(position), heat loss \(input.heatLoss)")
 
-        let expectedHistoryCount = 2
-        let history = input.history.getLast(expectedHistoryCount)
-        let hasExpectedHistoryCount = history.count >= expectedHistoryCount
-        let previousHistoryIsStraightLine = history.filter {
-            $0.direction == input.direction
-        }.count == expectedHistoryCount
-        let hasHitStraightLimit = hasExpectedHistoryCount && previousHistoryIsStraightLine
+        let hasHitLimit = hasHitStraightLimit(for: input, count: input.maxStraightDistance - 1)
 
         let nextDirections: [CompassDirection] = [
-            input.direction.turnLeft,
-            input.direction.turnRight,
-            hasHitStraightLimit ? nil : input.direction,
+            hasHitMinimum ? input.direction.turnLeft : nil,
+            hasHitMinimum ? input.direction.turnRight : nil,
+            hasHitLimit ? nil : input.direction,
         ].compactMap { $0 }
 
         // Insert the next steps into the priorityQueue.
@@ -148,6 +158,16 @@ private class DayGrid {
                 )
             )
         }
+    }
+
+    private func hasHitStraightLimit(for input: NextStepInput, count: Int) -> Bool {
+        let history = input.history.getLast(count)
+        let hasExpectedHistoryCount = history.count >= count
+
+        let sameDirectionCount = history.filter { $0.direction == input.direction }.count
+        let previousHistoryIsStraightLine = sameDirectionCount == count
+
+        return hasExpectedHistoryCount && previousHistoryIsStraightLine
     }
 }
 
@@ -163,12 +183,14 @@ private struct NextStepInput: Comparable {
     let direction: CompassDirection
     let heatLoss: HeatLoss
     let history: History
+    let maxStraightDistance: Int
+    let minStraightDistance: Int
 
     var heatLossCacheKey: HeatLossCacheKey {
         .init(
             position: from,
             direction: direction,
-            lastThreeDirections: history.getLast(2).map(\.direction) + [direction]
+            lastDirections: history.getLast(maxStraightDistance - 1).map(\.direction) + [direction]
         )
     }
 
@@ -193,7 +215,9 @@ private extension NextStepInput {
             from: from,
             direction: direction,
             heatLoss: heatLoss,
-            history: history.adding(self)
+            history: history.adding(self),
+            maxStraightDistance: maxStraightDistance,
+            minStraightDistance: minStraightDistance
         )
     }
 }
