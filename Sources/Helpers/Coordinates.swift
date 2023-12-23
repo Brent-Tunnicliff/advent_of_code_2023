@@ -2,7 +2,14 @@
 
 import Foundation
 
-struct Coordinates: Hashable {
+protocol CoordinatesType: Hashable {
+    var x: Int { get }
+    var y: Int { get }
+}
+
+// MARK: - 2D
+
+struct Coordinates: CoordinatesType {
     let x: Int
     let y: Int
 }
@@ -31,5 +38,33 @@ extension Coordinates: Comparable {
 extension Coordinates: CustomDebugStringConvertible {
     var debugDescription: String {
         "\(x),\(y)"
+    }
+}
+
+// MARK: - 3D
+
+struct ThreeDimensionalCoordinates: CoordinatesType {
+    let x: Int
+    let y: Int
+    let z: Int
+}
+
+extension ThreeDimensionalCoordinates: Comparable {
+    static func < (lhs: ThreeDimensionalCoordinates, rhs: ThreeDimensionalCoordinates) -> Bool {
+        if lhs.z != rhs.z {
+            return lhs.z < rhs.z
+        }
+
+        if lhs.x != rhs.x {
+            return lhs.x < rhs.x
+        }
+
+        return lhs.y < rhs.y
+    }
+}
+
+extension ThreeDimensionalCoordinates: CustomDebugStringConvertible {
+    var debugDescription: String {
+        "\(x),\(y),\(z)"
     }
 }

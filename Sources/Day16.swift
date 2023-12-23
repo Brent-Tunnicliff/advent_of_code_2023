@@ -179,7 +179,7 @@ private extension Value {
     }
 }
 
-private typealias DayGrid = Grid<Value>
+private typealias DayGrid = Grid<Coordinates, Value>
 private extension DayGrid {
 
     subscript(key: Coordinates) -> Value? {

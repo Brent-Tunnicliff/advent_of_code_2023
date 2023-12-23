@@ -131,8 +131,8 @@ final class GridTests: XCTestCase {
 }
 
 private extension GridTests {
-    private typealias TestGrid = Grid<Value>
-    private enum Value: String, CustomStringConvertible, CaseIterable {
+    typealias TestGrid = Grid<Coordinates, Value>
+    enum Value: String, CustomStringConvertible, CaseIterable {
         case empty = "."
         case one = "1"
         case two = "2"

@@ -90,7 +90,7 @@ private class DayGrid {
         grid.topLeft
     }
 
-    private let grid: Grid<Int>
+    private let grid: Grid<Coordinates, Int>
 
     // New learning, priority queue is what make this possible.
     // We are always pulling the value that is closest to the destination, while also the lowest heat loss.
@@ -100,7 +100,7 @@ private class DayGrid {
     private var heatLossCache: [HeatLossCacheKey: HeatLoss] = [:]
 
     init(data: String) {
-        self.grid = Grid<Int>(data: data)
+        self.grid = Grid<Coordinates, Int>(data: data)
     }
 
     func getLowestHeatLoss(_ input: NextStepInput) async -> HeatLoss? {

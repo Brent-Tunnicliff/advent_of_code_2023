@@ -4,10 +4,10 @@ import Foundation
 
 // MARK: - Grid
 
-struct Grid<Value: CustomStringConvertible> {
-    private(set) var values: [Coordinates: Value]
+struct Grid<Key: CoordinatesType, Value: CustomStringConvertible> {
+    private(set) var values: [Key: Value]
 
-    subscript(key: Coordinates) -> Value? {
+    subscript(key: Key) -> Value? {
         get { values[key] }
         set { values[key] = newValue }
     }
@@ -16,14 +16,16 @@ struct Grid<Value: CustomStringConvertible> {
         self.values = [:]
     }
 
-    init(values: [Coordinates: Value]) {
+    init(values: [Key: Value]) {
         self.values = values
     }
+}
 
+extension Grid where Key == Coordinates {
     init(data: String, valueMapper: (String) -> Value) {
         let values = data.split(separator: "\n")
             .enumerated()
-            .reduce(into: [Coordinates: Value]()) { partialResult, item in
+            .reduce(into: [Key: Value]()) { partialResult, item in
                 let (y, line) = item
                 for (x, value) in line.enumerated() {
                     partialResult[.init(x: x, y: y)] = valueMapper(String(value))
@@ -98,8 +100,8 @@ extension Grid {
 
 // MARK: Traversal
 
-extension Grid {
-    func getCoordinates(from: Coordinates, direction: CompassDirection) -> Coordinates? {
+extension Grid where Key == Coordinates {
+    func getCoordinates(from: Key, direction: CompassDirection) -> Key? {
         let coordinates = from.next(in: direction)
         return values.keys.contains(coordinates) ? coordinates : nil
     }
@@ -107,7 +109,7 @@ extension Grid {
 
 // MARK: Value is CaseIterable
 
-extension Grid where Value: CaseIterable {
+extension Grid where Key == Coordinates, Value: CaseIterable {
     init(data: String) {
         self.init(data: data) { value in
             Value.allCases.first(where: { $0.description == value })!
@@ -117,7 +119,7 @@ extension Grid where Value: CaseIterable {
 
 // MARK: Value is Int
 
-extension Grid where Value == Int {
+extension Grid where Key == Coordinates, Value == Int {
     init(data: String) {
         self.init(data: data) { Int($0)! }
     }
@@ -125,7 +127,7 @@ extension Grid where Value == Int {
 
 // MARK: Value is String
 
-extension Grid where Value == String {
+extension Grid where Key == Coordinates, Value == String {
     init(data: String) {
         self.init(data: data) { $0 }
     }

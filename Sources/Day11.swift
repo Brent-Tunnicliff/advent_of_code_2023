@@ -71,7 +71,7 @@ struct Day11: AdventDay {
 }
 
 private extension Day11 {
-    typealias DayGrid = Grid<Value>
+    typealias DayGrid = Grid<Coordinates, Value>
 
     enum Value: String, CustomStringConvertible, CaseIterable {
         case empty = "."

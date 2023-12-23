@@ -81,7 +81,7 @@ struct Day18: AdventDay {
     }
 }
 
-private typealias DayGrid = Grid<String>
+private typealias DayGrid = Grid<Coordinates, String>
 
 private struct Instruction {
     let colour: String
