@@ -6,7 +6,29 @@ import XCTest
 
 final class Day23Tests: XCTestCase {
     private let testData = """
-        MISSING
+        #.#####################
+        #.......#########...###
+        #######.#########.#.###
+        ###.....#.>.>.###.#.###
+        ###v#####.#v#.###.#.###
+        ###.>...#.#.#.....#...#
+        ###v###.#.#.#########.#
+        ###...#.#.#.......#...#
+        #####.#.#.#######.#.###
+        #.....#.#.#.......#...#
+        #.#####.#.#.#########v#
+        #.#...#...#...###...>.#
+        #.#.#v#######v###.###v#
+        #...#.>.#...>.>.#.###.#
+        #####v#.#.###v#.#.###.#
+        #.....#...#...#.#.#...#
+        #.#########.###.#.#.###
+        #...###...#...#...#.###
+        ###.###.#.###v#####v###
+        #...#...#.#.>.>.#.>.###
+        #.###.###.#.###.#.#v###
+        #.....###...###...#...#
+        #####################.#
         """
 
     func testPart1() async throws {
@@ -14,7 +36,21 @@ final class Day23Tests: XCTestCase {
         let result = await Day23(data: testData).part1()
 
         // then
-        XCTAssertEqual(String(describing: result), "")
+        XCTAssertEqual(String(describing: result), "94")
+    }
+
+    func testPart1All() async throws {
+        // given
+        let expectedResults = [94, 90, 86, 82, 82, 74].sorted()
+
+        // when
+        let results = await Day23(data: testData).getPathLengths().sorted()
+
+        // then
+        for (index, expectedResult) in expectedResults.enumerated() {
+            let result = results[index]
+            XCTAssertEqual(result, expectedResult, "Expected \(expectedResult) at index \(index), got \(result)")
+        }
     }
 
     func testPart2() async throws {
