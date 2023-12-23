@@ -47,6 +47,10 @@ struct ThreeDimensionalCoordinates: CoordinatesType {
     let x: Int
     let y: Int
     let z: Int
+
+    var twoDimensional: Coordinates {
+        .init(x: x, y: y)
+    }
 }
 
 extension ThreeDimensionalCoordinates: Comparable {

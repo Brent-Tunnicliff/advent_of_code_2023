@@ -6,7 +6,13 @@ import XCTest
 
 final class Day22Tests: XCTestCase {
     private let testData = """
-        MISSING
+        1,0,1~1,2,1
+        0,0,2~2,0,2
+        0,2,3~2,2,3
+        0,0,4~0,2,4
+        2,0,5~2,2,5
+        0,1,6~2,1,6
+        1,1,8~1,1,9
         """
 
     func testPart1() async throws {
@@ -14,7 +20,7 @@ final class Day22Tests: XCTestCase {
         let result = await Day22(data: testData).part1()
 
         // then
-        XCTAssertEqual(String(describing: result), "")
+        XCTAssertEqual(String(describing: result), "5")
     }
 
     func testPart2() async throws {
