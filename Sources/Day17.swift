@@ -94,7 +94,7 @@ private class DayGrid {
 
     // New learning, priority queue is what make this possible.
     // We are always pulling the value that is closest to the destination, while also the lowest heat loss.
-    private var priorityQueue = PriorityQueue<NextStepInput>()
+    private var priorityQueue = SwiftPriorityQueue.PriorityQueue<NextStepInput>()
     private var lowestValueCache: [Int] = []
 
     private var heatLossCache: [HeatLossCacheKey: HeatLoss] = [:]
