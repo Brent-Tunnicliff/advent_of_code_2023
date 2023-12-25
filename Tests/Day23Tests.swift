@@ -55,6 +55,8 @@ final class Day23Tests: XCTestCase {
         let results = await Day23(data: testData).getPathLengths(isSlippery: true).sorted()
 
         // then
+        XCTAssertEqual(results.count, expectedResults.count, "Unexpected length")
+
         for (index, expectedResult) in expectedResults.enumerated() {
             let result = results[index]
             XCTAssertEqual(result, expectedResult, "Expected \(expectedResult) at index \(index), got \(result)")

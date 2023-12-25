@@ -9,92 +9,93 @@ struct Day23: AdventDay {
         await getPathLengths(isSlippery: true).max()!
     }
 
+    // Brute force won!
+    // Took 38676.250664541 seconds, whoops haha
+    // I don't understand how others in Reddit did brute force and took like 10 minutes.
+    // What did I do wrong?
     func part2() async -> Any {
-        let result = await getPathLengths(isSlippery: false).max()!
-
-        if testsAreNotRunning {
-            precondition(result > 2190, "2190 is too low")
-        }
-
-        return result
+        await getPathLengths(isSlippery: false).max()!
     }
 
     func getPathLengths(isSlippery: Bool) async -> [Int] {
         let grid = DayGrid(data: data)
-        let priorityQueue = PriorityQueue<Input>()
-        let results = ResultsCache()
+        let intersectingPaths = await getIntersectionPaths(grid: grid, isSlippery: isSlippery)
+        let starting = await intersectingPaths.first(from: grid.startingPosition)!.getValues().from
+        let ending = await intersectingPaths.first(to: grid.endPosition)!.getValues().to
 
-        await nextStep(
-            destination: grid.endPosition,
-            grid: grid,
-            isSlippery: isSlippery,
-            priorityQueue: priorityQueue,
-            results: results,
-            input: Input(coordinates: grid.startingPosition, direction: .south, history: .init())
+        return await traverseIntersections(
+            currentPosition: starting,
+            count: 0,
+            destination: ending,
+            history: .init()
         )
+    }
 
-        let runningJobs = RunningJobs()
-        await withTaskGroup(of: Void.self) { group in
-            while await shouldKeepLooping(priorityQueue: priorityQueue, runningJobs: runningJobs) {
-                guard let input = await priorityQueue.pop() else {
-                    continue
-                }
+    private func getIntersectionPaths(grid: DayGrid, isSlippery: Bool) async -> [IntersectionPath] {
+        let intersections = grid.getIntersections()
+        return await withTaskGroup(of: Optional<IntersectionPath>.self) { group in
+            for intersection in intersections {
+                let intersectionValues = await intersection.getValues()
+                for direction in intersectionValues.directions {
+                    group.addTask {
+                        let nextIntersection = await mapPathToNextIntersection(
+                            from: intersectionValues.coordinates,
+                            direction: direction,
+                            intersections: intersections,
+                            grid: grid,
+                            count: 0,
+                            isSlippery: isSlippery,
+                            history: .init(values: [intersectionValues.coordinates])
+                        )
 
-                let jobID = UUID()
-                await runningJobs.add(jobID)
+                        guard let nextIntersection else {
+                            return nil
+                        }
 
-                group.addTask {
-                    await nextStep(
-                        destination: grid.endPosition,
-                        grid: grid,
-                        isSlippery: isSlippery,
-                        priorityQueue: priorityQueue,
-                        results: results,
-                        input: input
-                    )
-
-                    await runningJobs.remove(jobID)
+                        return await IntersectionPath(
+                            from: intersection,
+                            to: nextIntersection.intersection,
+                            distance: nextIntersection.count
+                        )
+                    }
                 }
             }
 
-            await group.waitForAll()
+            var results: [IntersectionPath] = []
+            for await result in group where result != nil {
+                results.append(result!)
+            }
+
+            return results
         }
-
-        return await results.getValues()
     }
 
-    private func shouldKeepLooping(priorityQueue: PriorityQueue<Input>, runningJobs: RunningJobs) async -> Bool {
-        async let isRunningJobs = !runningJobs.getJobs().isEmpty
-        async let outstandingQueue = !priorityQueue.isEmpty()
-        return await [isRunningJobs, outstandingQueue].contains(true)
-    }
-
-    private func nextStep(
-        destination: Coordinates,
+    private typealias MapPathToNextIntersectionResult = (intersection: Intersection, count: Int)?
+    private func mapPathToNextIntersection(
+        from: Coordinates,
+        direction: CompassDirection,
+        intersections: [Intersection],
         grid: DayGrid,
+        count: Int,
         isSlippery: Bool,
-        priorityQueue: PriorityQueue<Input>,
-        results: ResultsCache,
-        input: Input
-    ) async {
-        guard let position = grid.getCoordinates(from: input.coordinates, direction: input.direction) else {
+        history: History<Coordinates>
+    ) async -> MapPathToNextIntersectionResult {
+        guard let position = grid.getCoordinates(from: from, direction: direction) else {
             preconditionFailure("Unexpected invalid position")
         }
 
-        guard !input.history.contains(position) else {
-            return
+        guard await !history.contains(position) else {
+            return nil
         }
 
-        guard position != destination else {
-            let finalCount = input.history.count + 1
-            await results.add(finalCount)
-            return
+        if let intersection = await intersections.first(containing: position) {
+            return (intersection, count + 1)
         }
 
         let nextPossibleDirections = [
-            input.direction,
-            input.direction.turnLeft,
-            input.direction.turnRight,
+            direction,
+            direction.turnLeft,
+            direction.turnRight,
         ]
 
         let directions: [CompassDirection] =
@@ -113,15 +114,62 @@ struct Day23: AdventDay {
                 isSlippery ? [.west] : nextPossibleDirections
             }
 
-        let validDirections = directions.filter {
+        let nextDirection = directions.first {
             grid.getCoordinates(from: position, direction: $0) != nil
         }
 
-        for direction in validDirections {
-            await priorityQueue.push(input.next(coordinates: position, direction: direction))
+        guard let nextDirection else {
+            return nil
         }
 
-        return
+        return await mapPathToNextIntersection(
+            from: position,
+            direction: nextDirection,
+            intersections: intersections,
+            grid: grid,
+            count: count + 1,
+            isSlippery: isSlippery,
+            history: history.adding(value: position)
+        )
+    }
+
+    private func traverseIntersections(
+        currentPosition: Intersection,
+        count: Int,
+        destination: Intersection,
+        history: History<IntersectionPath>
+    ) async -> [Int] {
+        let currentPositionValues = await currentPosition.getValues()
+        let destinationValues = await destination.getValues()
+        guard currentPositionValues.coordinates != destinationValues.coordinates else {
+            log("Path discovered: \(count)")
+            return [count]
+        }
+
+        return await withTaskGroup(of: [Int].self) { group in
+            for path in currentPositionValues.paths where await path.getValues().from.equals(other: currentPosition) {
+                group.addTask {
+                    guard await !history.contains(path) else {
+                        return []
+                    }
+
+                    let pathValues = await path.getValues()
+                    return await traverseIntersections(
+                        currentPosition: pathValues.to,
+                        count: count + pathValues.distance,
+                        destination: destination,
+                        history: history.adding(value: path)
+                    )
+                }
+            }
+
+            var results: [Int] = []
+            for await result in group {
+                results.append(contentsOf: result)
+            }
+
+            return results
+        }
     }
 }
 
@@ -161,6 +209,32 @@ private class DayGrid {
 
         return coordinates
     }
+
+    func getIntersections() -> [Intersection] {
+        grid.values
+            .compactMap { entity in
+                guard entity.value != .forest else {
+                    return nil
+                }
+
+                let directions = CompassDirection.allCases.filter {
+                    getCoordinates(from: entity.key, direction: $0) != nil
+                }
+
+                guard directions.count > 2 else {
+                    return nil
+                }
+
+                return Intersection(coordinates: entity.key, directions: directions, value: entity.value)
+            } + getStartAndEndAsIntersections()
+    }
+
+    private func getStartAndEndAsIntersections() -> [Intersection] {
+        [
+            Intersection(coordinates: startingPosition, directions: [.south], value: grid[startingPosition]!),
+            Intersection(coordinates: endPosition, directions: [], value: grid[endPosition]!),
+        ]
+    }
 }
 
 // MARK: - Value
@@ -182,79 +256,182 @@ extension Value: CustomStringConvertible {
 
 // MARK: - History
 
-private struct History: Equatable {
-    typealias Value = Coordinates
-
-    var count: Int {
-        values.count
-    }
-
+private struct History<Value> {
     private let values: [Value]
 
     init(values: [Value] = []) {
         self.values = values
     }
 
-    func adding(coordinates: Coordinates) -> History {
-        .init(values: values + [coordinates])
-    }
-
-    func contains(_ coordinates: Coordinates) -> Bool {
-        values.first(where: { $0 == coordinates }) != nil
+    func adding(value: Value) -> History {
+        .init(values: values + [value])
     }
 }
 
-// MARK: - Cache
-
-private class ResultsCache {
-    private var values: [Int] = []
-
+extension History where Value: Equatable {
     @MainActor
-    func add(_ value: Int) async {
-        if let max = values.max(), value > max {
-            log("New high score: \(value)")
+    func contains(_ value: Value) async -> Bool {
+        values.contains(where: { $0 == value })
+    }
+}
+
+extension History where Value == IntersectionPath {
+    @MainActor
+    func contains(_ other: IntersectionPath) async -> Bool {
+        guard await !values.contains(path: other) else {
+            return false
         }
 
-        values.append(value)
+        guard await values.contains(intersection: await other.getValues().to) else {
+            return false
+        }
+
+        return true
+    }
+}
+
+// MARK: - Intersection
+
+private class Intersection {
+    struct Values {
+        let coordinates: Coordinates
+        let directions: [CompassDirection]
+        var paths: [IntersectionPath]
+        let value: Value
+    }
+
+    private var values: Intersection.Values
+
+    init(coordinates: Coordinates, directions: [CompassDirection], paths: [IntersectionPath] = [], value: Value) {
+        self.values = .init(
+            coordinates: coordinates,
+            directions: directions,
+            paths: paths,
+            value: value
+        )
     }
 
     @MainActor
-    func getValues() async -> [Int] {
+    func add(path newPath: IntersectionPath) async {
+        values = .init(
+            coordinates: values.coordinates,
+            directions: values.directions,
+            paths: values.paths + [newPath],
+            value: values.value
+        )
+    }
+
+    @MainActor
+    func contains(_ coordinates: Coordinates) async -> Bool {
+        values.coordinates == coordinates
+    }
+
+    @MainActor
+    func equals(other: Intersection) async -> Bool {
+        await other.getValues().coordinates == self.values.coordinates
+    }
+
+    @MainActor
+    func getValues() async -> Intersection.Values {
         values
     }
 }
 
-private class RunningJobs {
-    private var values: [UUID] = []
-
+private extension Collection where Element == Intersection {
     @MainActor
-    func add(_ value: UUID) async {
-        values.append(value)
+    func first(containing coordinates: Coordinates) async -> Intersection? {
+        for intersection in self where await intersection.contains(coordinates) {
+            return intersection
+        }
+
+        return nil
+    }
+}
+
+// MARK: - IntersectionPath
+
+private class IntersectionPath {
+    struct Values {
+        let from: Intersection
+        let to: Intersection
+        let distance: Int
+    }
+
+    private let values: IntersectionPath.Values
+
+    init(from: Intersection, to: Intersection, distance: Int) async {
+        self.values = .init(
+            from: from,
+            to: to,
+            distance: distance
+        )
+
+        await from.add(path: self)
+        await to.add(path: self)
     }
 
     @MainActor
-    func getJobs() async -> [UUID] {
+    func getValues() async -> IntersectionPath.Values {
         values
     }
 
     @MainActor
-    func remove(_ value: UUID) async {
-        values = values.filter { $0 != value }
+    func equals(_ other: IntersectionPath) async -> Bool {
+        let otherValues = await other.getValues()
+        async let checks = [
+            values.to.equals(other: otherValues.to),
+            values.from.equals(other: otherValues.from),
+        ]
+
+        return await checks.filter { $0 }.count == checks.count
     }
 }
 
-// MARK: - Input
+private extension Collection where Element == IntersectionPath {
+    @MainActor
+    func contains(path: IntersectionPath) async -> Bool {
+        for intersection in self where await intersection.equals(path) {
+            return true
+        }
 
-private struct Input: Comparable {
-    let coordinates: Coordinates
-    let direction: CompassDirection
-    let history: History
-
-    static func < (lhs: Input, rhs: Input) -> Bool {
-        lhs.history.count > rhs.history.count
+        return false
     }
 
-    func next(coordinates: Coordinates, direction: CompassDirection) -> Input {
-        .init(coordinates: coordinates, direction: direction, history: history.adding(coordinates: coordinates))
+    @MainActor
+    func contains(intersection: Intersection) async -> Bool {
+        let values = await intersection.getValues()
+        guard await first(from: values.coordinates) == nil else {
+            return true
+        }
+
+        guard await first(to: values.coordinates) == nil else {
+            return true
+        }
+
+        return false
+    }
+
+    @MainActor
+    func first(from coordinates: Coordinates) async -> IntersectionPath? {
+        for intersection in self {
+            let values = await intersection.getValues()
+            if await values.from.contains(coordinates) {
+                return intersection
+            }
+        }
+
+        return nil
+    }
+
+    @MainActor
+    func first(to coordinates: Coordinates) async -> IntersectionPath? {
+        for intersection in self {
+            let values = await intersection.getValues()
+            if await values.to.contains(coordinates) {
+                return intersection
+            }
+        }
+
+        return nil
     }
 }
