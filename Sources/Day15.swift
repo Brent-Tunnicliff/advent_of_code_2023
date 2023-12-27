@@ -19,7 +19,7 @@ struct Day15: AdventDay {
     }
 
     func part2() async -> Any {
-        let boxes = entities.reduce(into: [Int: [Box]]()) { partialTotalResult, text in
+        let boxes = entities.reduce(into: [Int: [DayBox]]()) { partialTotalResult, text in
             let command = getCommand(text)
             let box = hash(for: command.label)
             switch command.type {
@@ -60,17 +60,17 @@ private enum CommandType {
     case remove
 }
 
-private struct Box {
+private struct DayBox {
     let label: String
     let focalLength: Int
 }
 
-private extension Dictionary where Key == Int, Value == [Box] {
+private extension Dictionary where Key == Int, Value == [DayBox] {
     mutating func removeBox(_ label: String, for key: Key) {
         self[key] = self[key]?.filter { $0.label != label }
     }
 
-    mutating func add(box: Box, for key: Key) {
+    mutating func add(box: DayBox, for key: Key) {
         let boxes = self[key] ?? []
         guard boxes.contains(where: { $0.label == box.label }) else {
             self[key] = boxes + [box]
