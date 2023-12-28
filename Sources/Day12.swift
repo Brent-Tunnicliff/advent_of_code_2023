@@ -23,72 +23,98 @@ struct Day12: AdventDay {
     }
 
     func part1() async -> Any {
-        var result = 0
-        let filteredEntities = entities.filter(isPossible)
-        for (index, entity) in filteredEntities.enumerated() {
-            log("\(index + 1) of \(filteredEntities.count) start")
-            result += getAllPossibleVariants(for: entity.row, key: entity.key).count
+        entities.reduce(into: 0) { partialResult, entity in
+            partialResult += countWays(row: entity.row, key: entity.key)
         }
-
-        return result
     }
 
     func part2() async -> Any {
-        "Not implemented"
+        unfold(entities: entities).reduce(into: 0) { partialResult, entity in
+            partialResult += countWays(row: entity.row, key: entity.key)
+        }
     }
 
-    private struct CacheKey: Hashable {
-        let input: String
-        let key: [Int]
-    }
-
-    private static var getAllPossibleVariantsCache: [CacheKey: [String]] = [:]
-    private func getAllPossibleVariants(for row: String, key: [Int]) -> [String] {
+    // Found solution here https://www.reddit.com/r/adventofcode/comments/18ge41g/comment/kd09kvj/
+    private static var countWaysCache = Cache<CacheKey, Int>()
+    private func countWays(row: String, key: [Int]) -> Int {
         let cacheKey = CacheKey(input: row, key: key)
-        if let cachedResult = Self.getAllPossibleVariantsCache[cacheKey] {
-            return cachedResult
+        if let cachedValue = Self.countWaysCache[cacheKey] {
+            return cachedValue
         }
 
-        guard let firstIndex = Array(row).firstIndex(of: unknown) else {
-            let value: [String] = [row].filter { isPossible(key: key, row: $0) }
-            Self.getAllPossibleVariantsCache[cacheKey] = value
-            return value
+        let cacheAndReturn: (Int) -> Int = {
+            Self.countWaysCache[cacheKey] = $0
+            return $0
         }
 
-        let result = [damaged, operational].reduce(into: [String]()) { partialResult, newCharacter in
-            let editedRow = row.inserting(newCharacter, at: firstIndex)
-            for variant in getAllPossibleVariants(for: editedRow, key: key) {
-                partialResult.append(variant)
+        guard !row.isEmpty else {
+            return cacheAndReturn(key.isEmpty ? 1 : 0)
+        }
+
+        guard !key.isEmpty else {
+            for character in row where character == damaged {
+                return cacheAndReturn(0)
             }
+
+            return cacheAndReturn(1)
         }
 
-        Self.getAllPossibleVariantsCache[cacheKey] = result
-        return result
+        if row.count < (sum(key) + key.count - 1) {
+            // The line is not long enough for all runs
+            return cacheAndReturn(0)
+        }
+
+        guard row.first != operational else {
+            return cacheAndReturn(
+                countWays(row: String(row.dropFirst()), key: key)
+            )
+        }
+
+        guard row.first == damaged else {
+            // Otherwise dunno first spot, pick
+            return cacheAndReturn(
+                countWays(row: "\(damaged)\(row.dropFirst())", key: key)
+                    + countWays(row: "\(operational)\(row.dropFirst())", key: key)
+            )
+        }
+
+        let firstKey = key.first!
+        let leftoverKey = key.dropFirst()
+        for index in (0..<firstKey) where index < row.count && row.dropFirst(index).first == operational {
+            return cacheAndReturn(0)
+        }
+
+        if firstKey < row.count, row.dropFirst(firstKey).first == damaged {
+            return cacheAndReturn(0)
+        }
+
+        return cacheAndReturn(
+            countWays(row: String(row.dropFirst(firstKey + 1)), key: Array(leftoverKey))
+        )
     }
 
-    private static var isPossibleCache: [CacheKey: Bool] = [:]
-    private func isPossible(key: [Int], row: String) -> Bool {
-        let cacheKey = CacheKey(input: row, key: key)
-        if let cachedResult = Self.isPossibleCache[cacheKey] {
-            return cachedResult
+    private func sum(_ key: [Int]) -> Int {
+        key.reduce(into: 0) { partialResult, value in
+            partialResult += value
         }
+    }
 
-        let lastIndex = key.count - 1
-        let dynamicRegex: String = key.enumerated().reduce(into: "") { partialResult, item in
-            let suffix = item.offset < lastIndex ? "[?.]+" : ""
-            partialResult += "[?#]{\(item.element)}" + suffix
+    func unfold(entities: [(key: [Int], row: String)]) -> [(key: [Int], row: String)] {
+        entities.reduce(into: [(key: [Int], row: String)]()) { partialResult, entity in
+            var key = entity.key
+            var row = entity.row
+
+            for _ in (0..<4) {
+                key.append(contentsOf: entity.key)
+                row += "?\(entity.row)"
+            }
+
+            partialResult.append((key, row))
         }
-
-        let range = NSRange(location: 0, length: row.utf16.count)
-        let regex = try! NSRegularExpression(pattern: "^[.?]*\(dynamicRegex)[.?]*$")
-        return regex.firstMatch(in: row, options: [], range: range) != nil
     }
 }
 
-private extension String {
-    func inserting(_ value: Character, at index: Int) -> String {
-        var newSelf = Array(self).map { String($0) }
-        newSelf[index] = value.description
-        return newSelf.joined()
-    }
+private struct CacheKey: Hashable {
+    let input: String
+    let key: [Int]
 }
