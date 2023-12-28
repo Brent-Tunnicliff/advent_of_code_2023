@@ -10,6 +10,19 @@ enum CompassDirection: CaseIterable {
 }
 
 extension CompassDirection {
+    var opposite: CompassDirection {
+        switch self {
+        case .east:
+            .west
+        case .north:
+            .south
+        case .south:
+            .north
+        case .west:
+            .east
+        }
+    }
+
     var turnLeft: CompassDirection {
         switch self {
         case .east:

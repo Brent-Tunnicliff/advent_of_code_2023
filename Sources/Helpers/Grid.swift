@@ -36,6 +36,12 @@ extension Grid where Key == Coordinates {
     }
 }
 
+extension Grid where Value: Equatable {
+    func removing(value: Value) -> Grid {
+        .init(values: values.filter { $0.value != value })
+    }
+}
+
 // MARK: CustomStringConvertible
 
 extension Grid: CustomStringConvertible {
