@@ -6,7 +6,16 @@ import XCTest
 
 final class Day14Tests: XCTestCase {
     private let testData = """
-        MISSING
+        O....#....
+        O.OO#....#
+        .....##...
+        OO.#O....O
+        .O.....O#.
+        O.#..O.#.#
+        ..O..#O..O
+        .......O..
+        #....###..
+        #OO..#....
         """
 
     func testPart1() async throws {
@@ -14,7 +23,7 @@ final class Day14Tests: XCTestCase {
         let result = await Day14(data: testData).part1()
 
         // then
-        XCTAssertEqual(String(describing: result), "")
+        XCTAssertEqual(String(describing: result), "136")
     }
 
     func testPart2() async throws {
