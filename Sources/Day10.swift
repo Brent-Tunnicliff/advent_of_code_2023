@@ -8,18 +8,20 @@ struct Day10: AdventDay {
 
     func part1() async -> Any {
         var queue = PriorityQueue<Input>()
-        let lengthOfLoop = traverseGrid(maze: Maze(data: data), queue: &queue)
-        return lengthOfLoop / 2
+        let longestLoop = traverseGrid(maze: Maze(data: data), queue: &queue)
+        return longestLoop.values.count / 2
     }
 
     func part2() async -> Any {
-        "Not implemented"
+        var queue = PriorityQueue<Input>()
+        let longestLoop = traverseGrid(maze: Maze(data: data), queue: &queue).values
+        return calculatePolygonArea(longestLoop) - (longestLoop.count / 2) + 1
     }
 
     private func traverseGrid(
         maze: Maze,
         queue: inout PriorityQueue<Input>
-    ) -> Int {
+    ) -> History {
         for direction in CompassDirection.allCases {
             queue.push(
                 .init(
@@ -45,7 +47,7 @@ struct Day10: AdventDay {
             result = historyOfLoop
         }
 
-        return result!.values.count
+        return result!
     }
 
     private func performStep(
@@ -81,6 +83,19 @@ struct Day10: AdventDay {
         }
 
         return nil
+    }
+
+    private func calculatePolygonArea(_ points: [Coordinates]) -> Int {
+        var leftSum = 0
+        var rightSum = 0
+
+        for (index, point) in points.enumerated() {
+            let other = index < points.count - 1 ? points[index + 1] : points[0]
+            leftSum += point.x * other.y
+            rightSum += other.x * point.y
+        }
+
+        return abs(leftSum - rightSum) / 2
     }
 }
 
