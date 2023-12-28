@@ -7,8 +7,58 @@ struct Day14: AdventDay {
 
     func part1() async -> Any {
         let grid = DayGrid(data: data)
-        let tiltedGrid = grid.tiltingNorth()
+        let tiltedGrid = grid.tilting(direction: .north)
+        return calculateLoad(on: tiltedGrid)
+    }
 
+    func part2() async -> Any {
+        let grid = DayGrid(data: data)
+        let tiltedGrid = await performAllCycles(grid: grid)
+        return calculateLoad(on: tiltedGrid)
+    }
+
+    private func performAllCycles(grid: DayGrid) async -> DayGrid {
+        await Task.detached {
+            let cycles = 1_000_000_000
+            var partialResults = [grid]
+            var number = 0
+            while number < cycles {
+                let lastGrid = partialResults.last!
+                guard let firstMatchIndex = partialResults.dropLast().firstIndex(of: lastGrid) else {
+                    partialResults.append(performCycle(on: lastGrid))
+                    number += 1
+                    continue
+                }
+
+                let difference = partialResults.count - firstMatchIndex
+                let numberOfResults = min(difference - 1, cycles - number)
+                let droppedFirst = partialResults.dropFirst(firstMatchIndex + 1)
+                let numberToDropFromEnd = droppedFirst.count - numberOfResults
+                let newValues = droppedFirst.dropLast(max(numberToDropFromEnd, 0))
+                partialResults.append(contentsOf: newValues)
+                number += newValues.count
+            }
+
+            return partialResults.last!
+        }.value
+    }
+
+    private let cache = Cache<DayGrid, DayGrid>()
+    private func performCycle(on grid: DayGrid) -> DayGrid {
+        if let cachedResult = cache[grid] {
+            return cachedResult
+        }
+
+        let result = grid.tilting(direction: .north)
+            .tilting(direction: .west)
+            .tilting(direction: .south)
+            .tilting(direction: .east)
+
+        cache[grid] = result
+        return result
+    }
+
+    private func calculateLoad(on tiltedGrid: DayGrid) -> Int {
         let roundedRocks = tiltedGrid.grid.values.filter {
             $0.value == .roundedRock
         }
@@ -17,10 +67,6 @@ struct Day14: AdventDay {
         return roundedRocks.map(\.key).reduce(into: 0) { partialResult, rock in
             partialResult += numberOfRows - rock.y
         }
-    }
-
-    func part2() async -> Any {
-        "Not implemented"
     }
 }
 
@@ -35,23 +81,15 @@ private class DayGrid {
         self.grid = grid
     }
 
-    func tiltingNorth() -> DayGrid {
+    func tilting(direction: CompassDirection) -> DayGrid {
         var grid = self.grid
-        let roundedRocks = grid.values
+        let roundedRocks = grid.keysSortedClose(to: direction)
             .filter {
-                $0.value == .roundedRock
-            }
-            .keys
-            .sorted {
-                guard $0.y == $1.y else {
-                    return $0.y < $1.y
-                }
-
-                return $0.x < $1.x
+                grid[$0] == .roundedRock
             }
 
         for rock in roundedRocks {
-            let newPosition = grid.moving(rock: rock, direction: .north)
+            let newPosition = grid.moving(rock: rock, direction: direction)
             guard rock != newPosition else {
                 continue
             }
@@ -64,6 +102,18 @@ private class DayGrid {
     }
 }
 
+extension DayGrid: Equatable {
+    static func == (lhs: DayGrid, rhs: DayGrid) -> Bool {
+        lhs.grid == rhs.grid
+    }
+}
+
+extension DayGrid: Hashable {
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(grid)
+    }
+}
+
 private extension Grid where Key == Coordinates, Value == DayValue {
     func moving(rock: Coordinates, direction: CompassDirection) -> Coordinates {
         let nextPosition = rock.next(in: direction)
@@ -72,6 +122,41 @@ private extension Grid where Key == Coordinates, Value == DayValue {
         }
 
         return moving(rock: nextPosition, direction: direction)
+    }
+
+    func keysSortedClose(to direction: CompassDirection) -> [Key] {
+        switch direction {
+        case .east:
+            keysSortedCloseToWest().reversed()
+        case .north:
+            keysSortedCloseToNorth()
+        case .south:
+            keysSortedCloseToNorth().reversed()
+        case .west:
+            keysSortedCloseToWest()
+        }
+    }
+
+    private func keysSortedCloseToNorth() -> [Key] {
+        values.keys
+            .sorted {
+                guard $0.y == $1.y else {
+                    return $0.y < $1.y
+                }
+
+                return $0.x < $1.x
+            }
+    }
+
+    private func keysSortedCloseToWest() -> [Key] {
+        values.keys
+            .sorted {
+                guard $0.x == $1.x else {
+                    return $0.x < $1.x
+                }
+
+                return $0.y < $1.y
+            }
     }
 }
 
@@ -86,3 +171,5 @@ extension DayValue: CustomStringConvertible {
         rawValue
     }
 }
+
+extension DayValue: Hashable {}

@@ -68,6 +68,14 @@ extension Grid: CustomStringConvertible {
     }
 }
 
+// MARK: - Equatable
+
+extension Grid: Equatable where Key: Equatable, Value: Equatable {}
+
+// MARK: - Hashable
+
+extension Grid: Hashable where Key: Hashable, Value: Hashable {}
+
 // MARK: Positions
 
 extension Grid {
