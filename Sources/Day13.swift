@@ -15,46 +15,89 @@ struct Day13: AdventDay {
 
         let results = await withTaskGroup(of: [Int].self) { group in
             for grid in grids {
-                let columns = getColumns(for: grid)
-                let rows = getRows(for: grid)
-
                 group.addTask {
-                    findMirrorPositions(for: columns)
-                }
-
-                group.addTask {
-                    findMirrorPositions(for: rows).map { $0 * 100 }
+                    getValues(grid: grid)
                 }
             }
 
-            var results: [Int] = []
+            var results = 0
             for await result in group {
-                results.append(contentsOf: result)
+                let newValue = result.reduce(into: 0) { partialResult, value in
+                    partialResult += value
+                }
+
+                results += newValue
             }
 
             return results
         }
 
-        let result = results.reduce(into: 0) { partialResult, value in
-            partialResult += value
-        }
-
         if testsAreNotRunning {
             // Having lots of trouble with this one,
             // so checking against my submitted answers.
-            precondition(result < 74304, "Answer is too high")
-            precondition(result < 47817, "Answer is too high")
-            precondition(result != 41857)
-            precondition(result != 41861)
-            precondition(result != 41863)
-            precondition(result > 38217, "Answer is too low")
+            precondition(results < 74304, "Answer is too high")
+            precondition(results < 47817, "Answer is too high")
+            precondition(results != 41857)
+            precondition(results != 41861)
+            precondition(results != 41863)
+            precondition(results > 38217, "Answer is too low")
         }
 
-        return result
+        return results
     }
 
     func part2() async -> Any {
-        "Not implemented"
+        let grids = self.grids
+
+        return await withTaskGroup(of: [Int].self) { group in
+            for grid in grids {
+                group.addTask {
+                    let partOneValues = getValues(grid: grid)
+
+                    for index in (0..<grid.count) {
+                        let characterToReplace = grid.dropFirst(index).first
+                        guard characterToReplace != "\n" else {
+                            continue
+                        }
+
+                        let newCharacter = characterToReplace == "#" ? "." : "#"
+
+                        let start = grid.dropLast(grid.count - index)
+                        let end = grid.dropFirst(index + 1)
+
+                        let newValues = getValues(grid: start + newCharacter + end)
+
+                        guard !newValues.isEmpty, newValues != partOneValues else {
+                            continue
+                        }
+
+                        return newValues.filter {
+                            !partOneValues.contains($0)
+                        }
+                    }
+
+                    return []
+                }
+            }
+
+            var results = 0
+            for await result in group {
+                let newValue = result.reduce(into: 0) { partialResult, value in
+                    partialResult += value
+                }
+
+                results += newValue
+            }
+
+            return results
+        }
+    }
+
+    private func getValues(grid: String) -> [Int] {
+        let columns = getColumns(for: grid)
+        let rows = getRows(for: grid)
+
+        return findMirrorPositions(for: columns) + findMirrorPositions(for: rows).map { $0 * 100 }
     }
 
     private func getColumns(for grid: String) -> [String] {
