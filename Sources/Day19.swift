@@ -13,7 +13,22 @@ struct Day19: AdventDay {
     }
 
     func part2() async -> Any {
-        "Not implemented"
+        let initialRange = 1...4000
+        let partRange = PartRange(
+            aerodynamic: initialRange,
+            extremelyCoolLooking: initialRange,
+            musical: initialRange,
+            shiny: initialRange
+        )
+
+        let results = getAccepted(partRange: partRange, using: getWorkFlows())
+        return results.reduce(into: 0) { partialResult, part in
+            partialResult +=
+                part.aerodynamic.count
+                * part.extremelyCoolLooking.count
+                * part.musical.count
+                * part.shiny.count
+        }
     }
 
     private func getWorkFlows() -> [WorkflowId: [Rule]] {
@@ -83,6 +98,8 @@ struct Day19: AdventDay {
         return workFlows
     }
 
+    // MARK: - Part 1
+
     private func getParts() -> [Part] {
         getDataRows(section: 1).reduce(into: [Part]()) { partialResult, row in
             let components = row.trimmingCharacters(in: ["{", "}"]).split(separator: ",")
@@ -147,9 +164,105 @@ struct Day19: AdventDay {
             process(rules: workflows[workflowId]!, for: part, using: workflows)
         }
     }
+
+    // MARK: - Part 2
+
+    private func getAccepted(partRange: PartRange, using workflows: [WorkflowId: [Rule]]) -> [PartRange] {
+        let startingRules = workflows["in"]!
+        return process(rules: startingRules, for: partRange, using: workflows)
+    }
+
+    private func process(
+        rules: [Rule],
+        for partRange: PartRange,
+        using workflows: [WorkflowId: [Rule]]
+    ) -> [PartRange] {
+        let currentRule = rules.first!
+
+        guard currentRule is FallbackRule == false else {
+            return process(result: currentRule.result, for: partRange, using: workflows)
+        }
+
+        let meetsCondition = mapConditions(rule: currentRule as! ConditionalRule, for: partRange)
+
+        let yesResults: [PartRange] =
+            if let yes = meetsCondition.yes {
+                process(result: currentRule.result, for: yes, using: workflows)
+            } else {
+                []
+            }
+
+        let noResults: [PartRange] =
+            if let no = meetsCondition.no {
+                process(rules: Array(rules.dropFirst()), for: no, using: workflows)
+            } else {
+                []
+            }
+
+        return yesResults + noResults
+    }
+
+    private func process(
+        result: Result,
+        for partRange: PartRange,
+        using workflows: [WorkflowId: [Rule]]
+    ) -> [PartRange] {
+        switch result {
+        case .accept:
+            [partRange]
+        case .reject:
+            []
+        case let .workflow(workflowId):
+            process(rules: workflows[workflowId]!, for: partRange, using: workflows)
+        }
+    }
+
+    private func mapConditions(rule: ConditionalRule, for partRange: PartRange) -> (yes: PartRange?, no: PartRange?) {
+        let partValue = partRange.value(for: rule.partComponent)
+        switch rule.condition {
+        case let .greaterThan(value):
+            guard let yesFirst = partValue.first(where: { $0 > value }) else {
+                return (nil, partRange)
+            }
+
+            guard partValue.lowerBound != yesFirst else {
+                return (partRange, nil)
+            }
+
+            let yesLast = partValue.last(where: { $0 > value })!
+            return (
+                partRange.new(for: rule.partComponent, value: yesFirst...yesLast),
+                partRange.new(for: rule.partComponent, value: partValue.lowerBound...(yesFirst - 1))
+            )
+
+        case let .lessThan(value):
+            guard let yesFirst = partValue.first(where: { $0 < value }) else {
+                return (nil, partRange)
+            }
+
+            let yesLast = partValue.last(where: { $0 < value })!
+            guard partValue.upperBound != yesLast else {
+                return (partRange, nil)
+            }
+
+            return (
+                partRange.new(for: rule.partComponent, value: yesFirst...yesLast),
+                partRange.new(for: rule.partComponent, value: (yesLast + 1)...partValue.upperBound)
+            )
+        }
+    }
 }
 
-private class Part {
+private protocol PartType {
+    associatedtype Value
+
+    var aerodynamic: Value { get }
+    var extremelyCoolLooking: Value { get }
+    var musical: Value { get }
+    var shiny: Value { get }
+}
+
+private class Part: PartType {
     let aerodynamic: Int
     let extremelyCoolLooking: Int
     let musical: Int
@@ -172,6 +285,71 @@ private class Part {
             self.musical
         case .shiny:
             self.shiny
+        }
+    }
+}
+
+private class PartRange: PartType {
+    let aerodynamic: ClosedRange<Int>
+    let extremelyCoolLooking: ClosedRange<Int>
+    let musical: ClosedRange<Int>
+    let shiny: ClosedRange<Int>
+
+    init(
+        aerodynamic: ClosedRange<Int>,
+        extremelyCoolLooking: ClosedRange<Int>,
+        musical: ClosedRange<Int>,
+        shiny: ClosedRange<Int>
+    ) {
+        self.aerodynamic = aerodynamic
+        self.extremelyCoolLooking = extremelyCoolLooking
+        self.musical = musical
+        self.shiny = shiny
+    }
+
+    func value(for component: Component) -> ClosedRange<Int> {
+        switch component {
+        case .aerodynamic:
+            self.aerodynamic
+        case .extremelyCoolLooking:
+            self.extremelyCoolLooking
+        case .musical:
+            self.musical
+        case .shiny:
+            self.shiny
+        }
+    }
+
+    func new(for component: Component, value: ClosedRange<Int>) -> PartRange {
+        switch component {
+        case .aerodynamic:
+            PartRange(
+                aerodynamic: value,
+                extremelyCoolLooking: extremelyCoolLooking,
+                musical: musical,
+                shiny: shiny
+            )
+        case .extremelyCoolLooking:
+            PartRange(
+                aerodynamic: aerodynamic,
+                extremelyCoolLooking: value,
+                musical: musical,
+                shiny: shiny
+            )
+        case .musical:
+            PartRange(
+                aerodynamic: aerodynamic,
+                extremelyCoolLooking: extremelyCoolLooking,
+                musical: value,
+                shiny: shiny
+            )
+        case .shiny:
+            PartRange(
+                aerodynamic: aerodynamic,
+                extremelyCoolLooking: extremelyCoolLooking,
+                musical: musical,
+                shiny: value
+            )
         }
     }
 }
