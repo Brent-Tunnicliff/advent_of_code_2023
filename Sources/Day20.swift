@@ -3,6 +3,8 @@
 import Foundation
 
 struct Day20: AdventDay {
+    private static let machineModule = MachineModule(name: "rx")
+
     var data: String
 
     func part1() async -> Any {
@@ -45,7 +47,35 @@ struct Day20: AdventDay {
     }
 
     func part2() async -> Any {
-        "Not implemented"
+        let modules = getModules()
+        _ = pressButton(with: modules)
+
+        var lowValues: [ModuleIdentifier: Int] = [:]
+        for index in 1...10_000 {
+            _ = pressButton(with: modules)
+
+            for record in Self.machineModule.history {
+                let module = record.history.last!
+                guard module.pulse == .high, lowValues[module.input] == nil else {
+                    continue
+                }
+
+                lowValues[module.input] = index + 1
+            }
+
+            if lowValues.keys.count == 4 {
+                break
+            }
+        }
+
+        let result = lcm(Array(lowValues.values))
+
+        if testsAreNotRunning {
+            precondition(result > 1_298_120_819_400, "1298120819400 is too low")
+            precondition(result > 246_064_974_629_760, "246064974629760 is too low")
+        }
+
+        return result
     }
 
     private func detectRepeatPattern(within history: [PulseResult]) -> Int? {
@@ -76,33 +106,34 @@ struct Day20: AdventDay {
     // MARK: - Setup
 
     private func getModules() -> Modules {
-        let modules = data.split(separator: "\n").reduce(into: Modules()) { partialResult, row in
-            let split = row.split(separator: " -> ")
+        let modules: Modules = data.split(separator: "\n")
+            .reduce(into: [Self.machineModule.name: Self.machineModule]) { partialResult, row in
+                let split = row.split(separator: " -> ")
 
-            precondition(split.count == 2)
+                precondition(split.count == 2)
 
-            let destinations = split[1].split(separator: ", ").map { String($0) }
+                let destinations = split[1].split(separator: ", ").map { String($0) }
 
-            precondition(destinations.count > 0)
+                precondition(destinations.count > 0)
 
-            let module = String(split[0])
-            guard module != "broadcaster" else {
-                partialResult[module] = BroadcastModule(name: module, destinations: destinations)
-                return
+                let module = String(split[0])
+                guard module != "broadcaster" else {
+                    partialResult[module] = BroadcastModule(name: module, destinations: destinations)
+                    return
+                }
+
+                let moduleType = module.first!
+                let moduleName = String(module.dropFirst())
+
+                switch moduleType {
+                case "&":
+                    partialResult[moduleName] = ConjunctionModule(name: moduleName, destinations: destinations)
+                case "%":
+                    partialResult[moduleName] = FlipFlopModule(name: moduleName, destinations: destinations)
+                default:
+                    preconditionFailure("Unexpected module type '\(moduleType)'")
+                }
             }
-
-            let moduleType = module.first!
-            let moduleName = String(module.dropFirst())
-
-            switch moduleType {
-            case "&":
-                partialResult[moduleName] = ConjunctionModule(name: moduleName, destinations: destinations)
-            case "%":
-                partialResult[moduleName] = FlipFlopModule(name: moduleName, destinations: destinations)
-            default:
-                preconditionFailure("Unexpected module type '\(moduleType)'")
-            }
-        }
 
         registerConjunctionModuleInputs(modules)
 
@@ -127,9 +158,11 @@ struct Day20: AdventDay {
     // MARK: - Processing
 
     private func pressButton(with modules: Modules) -> PulseResult {
+        Self.machineModule.reset()
+
         var lowResult = 0
         var highResult = 0
-        var sendPending: [SendPulse] = [.init(pulse: .low, input: "start", destination: "broadcaster")]
+        var sendPending: [SendPulse] = [.init(pulse: .low, input: "start", destination: "broadcaster", history: [])]
 
         while !sendPending.isEmpty {
             let sendPulse = sendPending.first!
@@ -164,6 +197,7 @@ private struct SendPulse {
     let pulse: Pulse
     let input: ModuleIdentifier
     let destination: ModuleIdentifier
+    let history: [SendPulse]
 }
 
 private struct PulseResult: Equatable {
@@ -183,6 +217,14 @@ private protocol ModuleType {
     func receive(pulse sentPulse: SendPulse) -> [SendPulse]
 }
 
+extension ModuleType {
+    func getNext(pulse: Pulse, sentPulse: SendPulse) -> [SendPulse] {
+        destinations.map {
+            .init(pulse: pulse, input: name, destination: $0, history: sentPulse.history + [sentPulse])
+        }
+    }
+}
+
 // MARK: - BroadcastModule
 
 private class BroadcastModule: ModuleType {
@@ -197,9 +239,7 @@ private class BroadcastModule: ModuleType {
     // MARK: - ModuleType
 
     func receive(pulse sentPulse: SendPulse) -> [SendPulse] {
-        destinations.map {
-            .init(pulse: sentPulse.pulse, input: name, destination: $0)
-        }
+        getNext(pulse: sentPulse.pulse, sentPulse: sentPulse)
     }
 }
 
@@ -230,9 +270,7 @@ private class ConjunctionModule: ModuleType {
 
         let nextPulse: Pulse = allInputsSentHigh ? .low : .high
 
-        return destinations.map {
-            .init(pulse: nextPulse, input: name, destination: $0)
-        }
+        return getNext(pulse: nextPulse, sentPulse: sentPulse)
     }
 }
 
@@ -263,8 +301,30 @@ private class FlipFlopModule: ModuleType {
 
         let nextPulse: Pulse = isOn ? .high : .low
 
-        return destinations.map {
-            .init(pulse: nextPulse, input: name, destination: $0)
-        }
+        return getNext(pulse: nextPulse, sentPulse: sentPulse)
+    }
+}
+
+// MARK: - MachineModule
+
+private class MachineModule: ModuleType {
+    let destinations: [ModuleIdentifier] = []
+    let name: ModuleIdentifier
+
+    private(set) var history: [SendPulse] = []
+
+    init(name: ModuleIdentifier) {
+        self.name = name
+    }
+
+    // MARK: - ModuleType
+
+    func receive(pulse sentPulse: SendPulse) -> [SendPulse] {
+        history.append(sentPulse)
+        return []
+    }
+
+    func reset() {
+        history = []
     }
 }

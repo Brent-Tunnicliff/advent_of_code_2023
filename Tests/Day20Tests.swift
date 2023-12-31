@@ -40,15 +40,6 @@ final class Day20Tests: XCTestCase {
     }
 
     func testPart2() async throws {
-        // given
-        let testData = """
-            MISSING
-            """
-
-        // when
-        let result = await Day20(data: testData).part2()
-
-        // then
-        XCTAssertEqual(String(describing: result), "")
+        // No part 2 examples given for tests.
     }
 }
